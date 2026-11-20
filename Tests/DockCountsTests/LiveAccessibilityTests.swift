@@ -71,11 +71,11 @@ final class LiveAccessibilityTests: XCTestCase {
         print("INSTALLED BADGE:", rendered)
     }
 
-    func testAwaitNativeWindowSelection() throws {
-        guard ProcessInfo.processInfo.environment["DOCKCOUNTS_AWAIT_NATIVE_SELECTION"] == "1" else { throw XCTSkip("Requires interactive selection of the fixture's Beta window.") }
+    func testNativeWindowSelectionResult() throws {
+        guard ProcessInfo.processInfo.environment["DOCKCOUNTS_SELECTION_TEST"] == "1" else { throw XCTSkip("Requires a real input selection of the fixture's Beta window.") }
         let fixture = try XCTUnwrap(NSRunningApplication.runningApplications(withBundleIdentifier: "io.github.whdichrn.DockCountsFixture").first)
         let beta = try XCTUnwrap(AX.windows(pid: fixture.processIdentifier)?.first { $0.title == "DockCounts Test Beta" })
-        let deadline = Date().addingTimeInterval(180)
+        let deadline = Date().addingTimeInterval(3)
         while Date() < deadline && AX.value(beta.element, kAXMinimizedAttribute) as? Bool != false {
             RunLoop.current.run(until: Date().addingTimeInterval(0.05))
         }
@@ -86,6 +86,8 @@ final class LiveAccessibilityTests: XCTestCase {
         XCTAssertEqual(AX.value(beta.element, kAXMinimizedAttribute) as? Bool, false)
         XCTAssertEqual(AX.value(beta.element, kAXMainAttribute) as? Bool, true)
         XCTAssertTrue(fixture.isActive)
+        let focused = try XCTUnwrap(AX.value(AXUIElementCreateApplication(fixture.processIdentifier), kAXFocusedWindowAttribute))
+        XCTAssertTrue(CFEqual(focused, beta.element))
         XCTAssertEqual(AX.windows(pid: fixture.processIdentifier)?.filter(\.minimized).count, 0)
         print("NATIVE MENU SELECTION: minimized=\(String(describing: AX.value(beta.element, kAXMinimizedAttribute))) main=\(String(describing: AX.value(beta.element, kAXMainAttribute))) fixtureActive=\(fixture.isActive)")
     }

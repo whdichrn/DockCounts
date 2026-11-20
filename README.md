@@ -3,7 +3,7 @@
 一个专注于 Dock 窗口计数与选择的 macOS 菜单栏辅助程序。SwiftUI 界面，支持 macOS 15 及以上。
 
 - 在正在运行的应用 Dock 图标上显示 `窗口总数 · 已最小化数`，例如 `5·2` 表示共 5 个窗口，其中 2 个已最小化。
-- 普通左键点击有窗口的应用图标，显示只含该应用窗口标题、最小化状态的菜单；选择即可恢复、切换到该窗口。
+- 普通左键点击有窗口的应用图标，显示只含该应用窗口标题、最小化状态的 SwiftUI 菜单；选择即可恢复、切换到该窗口。支持方向键选择、回车确认、Esc 或点击外部关闭。
 - 右键、Command / Control / Option / Shift 点击、零窗口应用保留系统行为。拖动超过 5 pt 后将原始按下事件交回 Dock，继续原生拖动。
 - 仅在系统开启“将窗口最小化至应用程序图标”时工作；关闭该选项或暂停程序后，移除角标并停止点击接管。
 - 没有窗口预览、截图采集、网络请求、遥测或额外窗口管理功能。
@@ -37,7 +37,7 @@ DOCKCOUNTS_UNIVERSAL=1 scripts/build-app.sh
 
 ```sh
 scripts/test-live.sh
-# 包括原生菜单内容的完整桌面集成测试（先退出已有 DockCounts）
+# 包括 SwiftUI 菜单内容的桌面集成测试（先退出已有 DockCounts）
 DOCKCOUNTS_TEST_MENU=1 scripts/test-live.sh
 # 已安装版本的交互验收 fixture（结束后 Ctrl-C 清理）
 DOCKCOUNTS_INTERACTIVE=1 scripts/test-live.sh

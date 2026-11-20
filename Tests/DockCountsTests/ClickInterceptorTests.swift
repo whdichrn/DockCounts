@@ -66,4 +66,16 @@ final class ClickInterceptorTests: XCTestCase {
         interceptor.hitTest = { _, _ in nil }
         XCTAssertTrue(interceptor.handle(proxy, .leftMouseDown, event(.leftMouseDown)) != nil)
     }
+    func testRightClickObservationDoesNotConsumeTheEvent() {
+        let interceptor = makeInterceptor()
+        let observed = expectation(description: "outside-click observer")
+        interceptor.onPointerDown = { point in
+            XCTAssertEqual(point, CGPoint(x: 30, y: 70))
+            observed.fulfill()
+        }
+        let right = event(.rightMouseDown)
+        XCTAssertTrue(interceptor.handle(proxy, .rightMouseDown, right) != nil)
+        wait(for: [observed], timeout: 1)
+    }
+
 }

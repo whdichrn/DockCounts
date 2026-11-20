@@ -6,12 +6,13 @@ final class ClickInterceptor {
     var hitTest: (CGPoint, [DockEntry]) -> DockEntry? = { AX.clickedEntry(at: $0, entries: $1) }
     var replay: (CGEvent, CGEventTapProxy?) -> Void = { event, proxy in if let proxy { event.tapPostEvent(proxy) } }
     var onClick: ((DockEntry, CGPoint) -> Void)?
+    var onPointerDown: ((CGPoint) -> Void)?
     private var tap: CFMachPort?
     private var source: CFRunLoopSource?
     private var pending: (entry: DockEntry, down: CGEvent)?
     func start() -> Bool {
         if let tap { return CGEvent.tapIsEnabled(tap: tap) }
-        let mask = [CGEventType.leftMouseDown, .leftMouseUp, .leftMouseDragged].reduce(CGEventMask(0)) { $0 | (1 << $1.rawValue) }
+        let mask = [CGEventType.leftMouseDown, .leftMouseUp, .leftMouseDragged, .rightMouseDown, .otherMouseDown].reduce(CGEventMask(0)) { $0 | (1 << $1.rawValue) }
         // Listen immediately before delivery to applications, including assistive mouse input.
         tap = CGEvent.tapCreate(tap: .cgAnnotatedSessionEventTap, place: .headInsertEventTap, options: .defaultTap, eventsOfInterest: mask, callback: { proxy, type, event, pointer in
             guard let pointer else { return Unmanaged.passUnretained(event) }
@@ -36,6 +37,10 @@ final class ClickInterceptor {
             pending = nil
             if let tap { CGEvent.tapEnable(tap: tap, enable: true) }
             return Unmanaged.passUnretained(event)
+        }
+        if [.leftMouseDown, .rightMouseDown, .otherMouseDown].contains(type), onPointerDown != nil {
+            let point = event.location
+            DispatchQueue.main.async { [weak self] in self?.onPointerDown?(point) }
         }
         if type == .leftMouseDown {
             let modifiers: CGEventFlags = [.maskCommand, .maskControl, .maskAlternate, .maskShift]

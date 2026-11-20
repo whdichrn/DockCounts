@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 import ApplicationServices
 
-final class AppController: NSObject, ObservableObject, NSMenuDelegate {
+final class AppController: NSObject, ObservableObject {
     @Published var enabled = UserDefaults.standard.object(forKey: "enabled") as? Bool ?? true {
         didSet { UserDefaults.standard.set(enabled, forKey: "enabled"); refresh() }
     }
@@ -17,12 +17,17 @@ final class AppController: NSObject, ObservableObject, NSMenuDelegate {
     private var busy = false
     private var generation = 0
     private var settingsWindow: NSWindow?
-    private var menu: NSMenu?
+    private let picker = WindowPickerController()
     private var menuOpen = false
     private var dockDefaults: UserDefaults? { UserDefaults(suiteName: "com.apple.dock") }
     override init() {
         super.init()
         clicks.onClick = { [weak self] entry, point in self?.showWindows(entry, at: point) }
+        clicks.onPointerDown = { [weak self] point in self?.picker.dismissIfOutside(at: point) }
+        picker.onDismiss = { [weak self] in
+            self?.menuOpen = false
+            self?.refresh()
+        }
     }
     func start() {
         refresh()
@@ -60,7 +65,7 @@ final class AppController: NSObject, ObservableObject, NSMenuDelegate {
         FileHandle.standardError.write(Data("SMOKE: consumed down=\(consumedDown) up=\(consumedUp)\n".utf8))
     }
     #endif
-    func stop() { timer?.invalidate(); generation += 1; clicks.stop(); badges.hide() }
+    func stop() { timer?.invalidate(); generation += 1; picker.dismiss(notify: false); menuOpen = false; clicks.stop(); badges.hide() }
     func requestPermission() {
         let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
         _ = AXIsProcessTrustedWithOptions(options)
@@ -71,6 +76,7 @@ final class AppController: NSObject, ObservableObject, NSMenuDelegate {
         minimizeToApplication = dockDefaults?.bool(forKey: "minimize-to-application") ?? false
         guard enabled && trusted && minimizeToApplication else {
             generation += 1
+            picker.dismiss(notify: false); menuOpen = false
             badges.hide(); clicks.stop(); intercepting = false
             message = !enabled ? "已暂停" : !trusted ? "需要辅助功能权限" : "请先开启“将窗口最小化至应用程序图标”"
             return
@@ -96,41 +102,14 @@ final class AppController: NSObject, ObservableObject, NSMenuDelegate {
     }
     func showWindows(_ entry: DockEntry, at point: CGPoint) {
         guard !menuOpen else { return }
-        let menu = NSMenu(title: entry.name)
-        menu.delegate = self
-        let heading = NSMenuItem(title: entry.name, action: nil, keyEquivalent: "")
-        heading.isEnabled = false; menu.addItem(heading)
-        let windows = AX.windows(pid: entry.pid) ?? []
-        if windows.isEmpty {
-            let empty = NSMenuItem(title: "没有可用窗口", action: nil, keyEquivalent: "")
-            empty.isEnabled = false; menu.addItem(empty)
-        }
-        for window in windows {
-            let item = NSMenuItem(title: window.title + (window.minimized ? "  — 已最小化" : ""), action: #selector(selectWindow(_:)), keyEquivalent: "")
-            item.target = self
-            item.representedObject = WindowSelection(pid: entry.pid, window: window)
-            item.image = NSImage(systemSymbolName: window.minimized ? "minus.square" : "macwindow", accessibilityDescription: nil)
-            menu.addItem(item)
-        }
-        self.menu = menu
         clicks.entries = []
         menuOpen = true
-        let height = NSScreen.screens.first?.frame.height ?? 0
-        menu.popUp(positioning: nil, at: NSPoint(x: point.x, y: height - point.y), in: nil)
-        menuOpen = false
-        self.menu = nil
-        refresh()
-    }
-    @objc private func selectWindow(_ sender: NSMenuItem) {
-        guard let selection = sender.representedObject as? WindowSelection else { return }
-        if !WindowActivator.activate(pid: selection.pid, window: selection.window) {
-            message = "该窗口已关闭或应用暂时没有响应"
+        picker.onChoose = { [weak self] window in
+            guard let self else { return }
+            if !WindowActivator.activate(pid: entry.pid, window: window) {
+                self.message = "该窗口已关闭或应用暂时没有响应"
+            }
         }
-        refresh()
+        picker.present(name: entry.name, windows: AX.windows(pid: entry.pid) ?? [], icon: entry.frame, at: point)
     }
-}
-private final class WindowSelection {
-    let pid: pid_t
-    let window: WindowRecord
-    init(pid: pid_t, window: WindowRecord) { self.pid = pid; self.window = window }
 }
