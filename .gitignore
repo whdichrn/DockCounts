@@ -3,3 +3,7 @@
 dist/
 .DS_Store
 *.xcuserstate
+
+# Generated documentation artifacts
+/tmp/
+/output/

@@ -8,6 +8,8 @@
 - 仅在系统开启“将窗口最小化至应用程序图标”时工作；关闭该选项或暂停程序后，移除角标并停止点击接管。
 - 没有窗口预览、截图采集、网络请求、遥测或额外窗口管理功能。
 
+[查看实机图解与简明手册](docs/manual/README.md) · [下载两页 PDF 手册](https://github.com/whdichrn/DockCounts/releases/download/v0.1.0/DockCounts-0.1.0-Quick-Guide-zh-CN.pdf)
+
 ## 使用
 
 1. 将构建好的 `DockCounts.app` 放到固定位置（例如 `~/Applications`）后启动。
