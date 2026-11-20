@@ -23,11 +23,13 @@
 
 安装到固定路径后，通过系统设置重新添加当前签名的 DockCounts，已确认独立启动显示“辅助功能已授权”和“运行中”。旧的 ad-hoc 签名授权记录可能需要移除后重新添加，单纯开关旧记录不能更新签名身份。
 
+已从独立安装进程的真实辅助功能树断言测试应用的角标文本为“共 3 个窗口，已最小化 1 个”，而非仅检查窗口数据或示例组件。
+
 原生自动化工具的点击从 annotated session 阶段进入，并可能保留 Command 修饰键。生产事件 tap 已放在应用接收事件前的 annotated session 阶段，覆盖这类辅助输入。清除测试工具残留修饰键后，已用原生点击触发独立安装版的窗口菜单，真实辅助功能树检查通过；这一过程没有使用调试菜单驱动。
 
 交互 fixture 可用 `DOCKCOUNTS_INTERACTIVE=1 scripts/test-live.sh` 启动，测试结束后 Ctrl-C 清理。它额外打开一个普通层级的临时测试界面以定位 Dock 下方屏幕坐标，该界面标记为浮动窗口，不计入三个标准测试窗口。
 
-通过 `DOCKCOUNTS_E2E_EXPECT_MINIMIZED=1 swift test --filter LiveAccessibilityTests/testInstalledEndToEndWindowState` 可断言选择前的状态；`DOCKCOUNTS_AWAIT_NATIVE_SELECTION=1 swift test --filter LiveAccessibilityTests/testAwaitNativeWindowSelection` 会最多等待 180 秒，由本机操作者选择 Beta 后断言已恢复、成为主窗口与前台应用。完整原生菜单选择链路的结果待最终复核。
+通过 `DOCKCOUNTS_E2E_EXPECT_MINIMIZED=1 swift test --filter LiveAccessibilityTests/testInstalledEndToEndWindowState` 可断言选择前的状态；`DOCKCOUNTS_AWAIT_NATIVE_SELECTION=1 swift test --filter LiveAccessibilityTests/testAwaitNativeWindowSelection` 会最多等待 180 秒，由本机操作者选择 Beta 后断言已恢复、成为主窗口与前台应用。本轮等待 180 秒内未观测到本机操作者选择 Beta，恢复断言未通过；完整原生菜单选择链路仍待最终复核，未将这次等待记为通过。
 
 ## 尚需人工验收的范围
 

@@ -55,9 +55,20 @@ final class LiveAccessibilityTests: XCTestCase {
         }
         print("NATIVE INPUT RESULT:", windows.map { ($0.title, $0.minimized) }, "fixtureActive:", fixture.isActive)
         let installed = try XCTUnwrap(NSRunningApplication.runningApplications(withBundleIdentifier: "io.github.whdichrn.DockCounts").first)
-        for window in AX.value(AXUIElementCreateApplication(installed.processIdentifier), kAXWindowsAttribute) as? [AXUIElement] ?? [] {
-            if AX.string(window, kAXTitleAttribute) == "DockCounts" { print("SETTINGS FRAME:", String(describing: AX.frame(window))) }
+        let installedWindows = AX.value(AXUIElementCreateApplication(installed.processIdentifier), kAXWindowsAttribute) as? [AXUIElement] ?? []
+        let url = try XCTUnwrap(fixture.bundleURL)
+        let entry = try XCTUnwrap(AX.dockEntries(applications: [url.standardizedFileURL: fixture.processIdentifier]).first)
+        let badge = try XCTUnwrap(installedWindows.first { window in
+            guard AX.string(window, kAXIdentifierAttribute) == "io.github.whdichrn.DockCounts.badge", let frame = AX.frame(window) else { return false }
+            return abs(frame.minY - (entry.frame.minY - 2)) <= 2 && abs(frame.maxX - (entry.frame.maxX + 2)) <= 2
+        }, "Installed application must render the fixture's real Dock badge")
+        func labels(_ element: AXUIElement, depth: Int = 0) -> [String] {
+            guard depth < 5 else { return [] }
+            return [kAXValueAttribute, kAXDescriptionAttribute, kAXTitleAttribute].compactMap { AX.string(element, $0) } + AX.children(element).flatMap { labels($0, depth: depth + 1) }
         }
+        let rendered = labels(badge)
+        XCTAssertTrue(rendered.contains("共 3 个窗口，已最小化 \(expected) 个") || (rendered.contains("3") && rendered.contains("\(expected)")), "Actual badge text: \(rendered)")
+        print("INSTALLED BADGE:", rendered)
     }
 
     func testAwaitNativeWindowSelection() throws {
@@ -76,7 +87,7 @@ final class LiveAccessibilityTests: XCTestCase {
         XCTAssertEqual(AX.value(beta.element, kAXMainAttribute) as? Bool, true)
         XCTAssertTrue(fixture.isActive)
         XCTAssertEqual(AX.windows(pid: fixture.processIdentifier)?.filter(\.minimized).count, 0)
-        print("NATIVE MENU SELECTION: Beta restored, main window, fixtureActive=\(fixture.isActive)")
+        print("NATIVE MENU SELECTION: minimized=\(String(describing: AX.value(beta.element, kAXMinimizedAttribute))) main=\(String(describing: AX.value(beta.element, kAXMainAttribute))) fixtureActive=\(fixture.isActive)")
     }
 
 }
