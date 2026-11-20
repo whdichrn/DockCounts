@@ -21,7 +21,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             DispatchQueue.main.asyncAfter(deadline: .now() + 8) { self.controller.smokeClick(bundleID: bundleID) }
         }
         #endif
-        if !UserDefaults.standard.bool(forKey: "hasLaunched") || CommandLine.arguments.contains("--settings") {
+        if !UserDefaults.standard.bool(forKey: "hasLaunched") || !controller.trusted || CommandLine.arguments.contains("--settings") {
             UserDefaults.standard.set(true, forKey: "hasLaunched")
             controller.showSettings()
         }
