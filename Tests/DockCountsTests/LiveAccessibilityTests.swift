@@ -60,12 +60,14 @@ final class LiveAccessibilityTests: XCTestCase {
         let entry = try XCTUnwrap(AX.dockEntries(applications: [url.standardizedFileURL: fixture.processIdentifier]).first)
         let badge = try XCTUnwrap(installedWindows.first { window in
             guard AX.string(window, kAXIdentifierAttribute) == "io.github.whdichrn.DockCounts.badge", let frame = AX.frame(window) else { return false }
-            return abs(frame.minY - (entry.frame.minY - 2)) <= 2 && abs(frame.maxX - (entry.frame.maxX + 2)) <= 2
+            return entry.frame.contains(CGPoint(x: frame.midX, y: frame.midY))
         }, "Installed application must render the fixture's real Dock badge")
         func labels(_ element: AXUIElement, depth: Int = 0) -> [String] {
             guard depth < 5 else { return [] }
             return [kAXValueAttribute, kAXDescriptionAttribute, kAXTitleAttribute].compactMap { AX.string(element, $0) } + AX.children(element).flatMap { labels($0, depth: depth + 1) }
         }
+        let badgeFrame = try XCTUnwrap(AX.frame(badge))
+        XCTAssertNotNil(AX.clickedEntry(at: CGPoint(x: badgeFrame.midX, y: badgeFrame.midY), entries: [entry]), "The rendered badge must pass clicks through to the application icon")
         let rendered = labels(badge)
         XCTAssertTrue(rendered.contains("共 3 个窗口，已最小化 \(expected) 个") || (rendered.contains("3") && rendered.contains("\(expected)")), "Actual badge text: \(rendered)")
         print("INSTALLED BADGE:", rendered)

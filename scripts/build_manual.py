@@ -13,7 +13,8 @@ from reportlab.platypus import Paragraph
 
 ROOT = Path(__file__).resolve().parents[1]
 ASSETS = ROOT / 'docs/manual/screenshots'
-OUTPUT = ROOT / 'output/pdf/DockCounts-0.1.0-Quick-Guide-zh-CN.pdf'
+VERSION = (ROOT / 'VERSION').read_text().strip()
+OUTPUT = ROOT / f'output/pdf/DockCounts-{VERSION}-Quick-Guide-zh-CN.pdf'
 OUTPUT.parent.mkdir(parents=True, exist_ok=True)
 pdfmetrics.registerFont(TTFont('Guide', '/System/Library/Fonts/Supplemental/Arial Unicode.ttf'))
 pdfmetrics.registerFont(TTFont('GuideBold', '/System/Library/Fonts/STHeiti Medium.ttc', subfontIndex=0))
@@ -26,9 +27,9 @@ BLUE=colors.HexColor('#1677E8')
 PALE=colors.HexColor('#EFF6FF')
 LINE=colors.HexColor('#E1E7EF')
 TEAL=colors.HexColor('#167A72')
-RELEASE='https://github.com/whdichrn/DockCounts/releases/tag/v0.1.0'
+RELEASE=f'https://github.com/whdichrn/DockCounts/releases/tag/v{VERSION}'
 c=canvas.Canvas(str(OUTPUT),pagesize=A4,pageCompression=1)
-c.setTitle('DockCounts 0.1.0 实机图解与简明手册')
+c.setTitle(f'DockCounts {VERSION} 实机图解与简明手册')
 c.setAuthor('DockCounts')
 c.setSubject('真实安装版截图、窗口计数、窗口选择与安装说明')
 
@@ -62,13 +63,13 @@ def number(n,y):
 # Page 1: actual appearance and before/after state.
 text('DockCounts',M,796,29,'GuideBold')
 text('实机图解 · 窗口计数与选择',M,769,16,'GuideBold',BLUE)
-text('v0.1.0  |  SwiftUI  |  macOS 15+  |  私有测试版',M,748,9.5,color=MUTED)
+text(f'v{VERSION}  |  SwiftUI  |  macOS 15+  |  私有测试版',M,748,9.5,color=MUTED)
 c.setFillColor(PALE); c.roundRect(M,675,CW,54,9,fill=1,stroke=0)
 text('3 · 1',M+16,691,27,'GuideBold',BLUE)
 text('窗口总数 · 已最小化数',M+130,707,12,'GuideBold')
 text('总数包含已经最小化的窗口。',M+130,687,10.5,color=MUTED)
 text('01  点击图标，只看这个应用的窗口',M,646,15,'GuideBold')
-photo('02-window-menu.png',M,424,CW)
+photo('02-window-menu.png',(W-480)/2,424,480)
 text('图 1  当前安装版展开的窗口列表（实机局部）。',M,404,9,color=MUTED)
 para('菜单中只有窗口名称与最小化状态。示例应用有三个窗口，Beta 标为“已最小化”；选择它即可恢复并切换。',M,384,CW,11.2,18)
 text('02  角标会随状态更新',M,320,15,'GuideBold')
@@ -92,7 +93,7 @@ text('安装与日常使用',M,796,25,'GuideBold')
 text('按以下三步即可使用',M,772,11,color=MUTED)
 number(1,731); text('下载、解压并放到固定位置',M+30,731,12,'GuideBold')
 para('从私有发布页下载通用版 ZIP，解压后将 DockCounts.app 放到 ~/Applications，双击启动。',M+30,716,CW-30,11.2,17)
-text('打开 v0.1.0 发布页',M+30,670,10.5,color=BLUE)
+text(f'打开 v{VERSION} 发布页',M+30,670,10.5,color=BLUE)
 c.linkURL(RELEASE,(M+30,667,M+180,682),relative=0,thickness=0)
 number(2,637); text('完成两项系统设置',M+30,637,12,'GuideBold')
 para('系统设置 → 隐私与安全性 → 辅助功能：允许 DockCounts。\n系统设置 → 桌面与程序坞：开启“将窗口最小化至应用程序图标”。',M+30,622,CW-30,10.7,17)

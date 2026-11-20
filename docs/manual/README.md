@@ -1,12 +1,12 @@
-# DockCounts 0.1.0 实机图解
+# DockCounts 0.2.0 实机图解
 
-[下载两页 PDF 手册](https://github.com/whdichrn/DockCounts/releases/download/v0.1.0/DockCounts-0.1.0-Quick-Guide-zh-CN.pdf) · [下载软件通用版](https://github.com/whdichrn/DockCounts/releases/download/v0.1.0/DockCounts-0.1.0-universal.zip)
+[下载两页 PDF 手册](https://github.com/whdichrn/DockCounts/releases/download/v0.2.0/DockCounts-0.2.0-Quick-Guide-zh-CN.pdf) · [下载软件通用版](https://github.com/whdichrn/DockCounts/releases/download/v0.2.0/DockCounts-0.2.0-universal.zip)
 
-以下截图来自本机正在运行的 **0.1.0 安装版**，使用专用测试应用和窗口，只裁切相关区域，没有重绘界面。截图机为 macOS 27.2.1，软件最低支持 macOS 15。
+以下截图来自本机正在运行的 **0.2.0 安装版**，使用专用测试应用和窗口，只裁切相关区域，没有重绘界面。截图机为 macOS 27.2.1，软件最低支持 macOS 15。
 
 ## 角标怎么看
 
-黑底胶囊中的白色数字是窗口总数，黄色数字是已最小化数。总数包含已最小化窗口。
+图标右下角的小型半透明计数中，前面的数字是窗口总数，后面的数字是已最小化数。两项使用中性色与不同文字层级，总数包含已最小化窗口。右上角保留给应用自身的通知角标。
 
 | 恢复前：3·1 | 恢复后：3·0 |
 | --- | --- |
@@ -18,7 +18,7 @@
 
 ![Dock 与窗口菜单的实机位置](screenshots/06-dock-context.png)
 
-菜单只列出这个应用的窗口名称和最小化状态。蓝色行是当前选中的菜单项；带“已最小化”的行可以直接恢复并切换。
+菜单只列出这个应用的窗口名称和最小化状态。菜单采用系统菜单材质、紧凑间距与随内容调整的宽度。打开时不预选窗口；鼠标悬停或方向键选择后才显示系统高亮，带“已最小化”的行可以直接恢复并切换。
 
 ![窗口菜单实机局部](screenshots/02-window-menu.png)
 
@@ -55,4 +55,4 @@
 python3 scripts/build_manual.py
 ```
 
-输出为 `output/pdf/DockCounts-0.1.0-Quick-Guide-zh-CN.pdf`。PDF 使用截图目录中的原始局部图，并嵌入中文字体。
+输出为 `output/pdf/DockCounts-0.2.0-Quick-Guide-zh-CN.pdf`。PDF 使用截图目录中的原始局部图，并嵌入中文字体。

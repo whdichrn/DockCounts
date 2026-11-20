@@ -9,7 +9,7 @@ final class WindowPickerTests: XCTestCase {
     func testKeyboardSelectionWrapsAndRetainsWindowIdentity() {
         let records = windows(3)
         let state = WindowPickerState(windows: records)
-        XCTAssertEqual(state.selectedWindow?.title, "Window 0")
+        XCTAssertNil(state.selectedWindow, "Opening a menu should not paint a selection before user input")
         state.move(by: -1)
         XCTAssertEqual(state.selectedWindow?.title, "Window 2")
         state.move(by: 1)
@@ -37,4 +37,19 @@ final class WindowPickerTests: XCTestCase {
         let rect = PickerPlacement.frame(icon: .zero, point: .zero, size: CGSize(width: 340, height: 420), visible: visible, edge: "bottom")
         XCTAssertTrue(visible.contains(rect))
     }
+    func testPointerExitClearsHoverButNotKeyboardSelection() {
+        let state = WindowPickerState(windows: windows(3))
+        state.select(1); state.clearHover(1)
+        XCTAssertNil(state.selectedIndex)
+        state.move(by: 1)
+        XCTAssertEqual(state.selectedIndex, 0)
+        state.clearHover(0)
+        XCTAssertEqual(state.selectedIndex, 0)
+    }
+    func testMenuSizesToContentRatherThanUsingAnOversizedFixedWidth() {
+        let size = WindowPickerMetrics.size(name: "Test", windows: windows(3), scale: 2)
+        XCTAssertLessThan(size.width, 300)
+        XCTAssertLessThan(size.height, 120)
+    }
+
 }

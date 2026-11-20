@@ -27,6 +27,12 @@ enum Geometry {
         rect.width > 4 && rect.height > 4 && screens.contains { $0.intersection(rect).width >= rect.width * 0.7 && $0.intersection(rect).height >= rect.height * 0.7 }
     }
 }
+enum DockRefreshPolicy {
+    static func geometryInterval(pointer: CGPoint, tiles: [CGRect]) -> TimeInterval {
+        tiles.contains { $0.insetBy(dx: -70, dy: -70).contains(pointer) } ? 1.0 / 30.0 : 0.35
+    }
+}
+
 enum AX {
     static func value(_ element: AXUIElement, _ key: String) -> CFTypeRef? {
         var result: CFTypeRef?
@@ -52,7 +58,7 @@ enum AX {
             WindowRecord(element: element, title: string(element, kAXTitleAttribute).flatMap { $0.isEmpty ? nil : $0 } ?? "未命名窗口", minimized: value(element, kAXMinimizedAttribute) as? Bool ?? false)
         }
     }
-    static func dockEntries(applications: [URL: pid_t]) -> [DockEntry] {
+    static func dockEntries(applications: [URL: pid_t], windowProvider: (pid_t) -> [WindowRecord]? = { AX.windows(pid: $0) }) -> [DockEntry] {
         guard let dock = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.dock").first else { return [] }
         let root = AXUIElementCreateApplication(dock.processIdentifier)
         AXUIElementSetMessagingTimeout(root, 0.08)
@@ -60,7 +66,7 @@ enum AX {
         return items.compactMap { item in
             guard string(item, kAXSubroleAttribute) == "AXApplicationDockItem", let url = value(item, kAXURLAttribute) as? URL,
                   let pid = applications[url.standardizedFileURL], let frame = frame(item) else { return nil }
-            return DockEntry(pid: pid, name: string(item, kAXTitleAttribute) ?? "应用", url: url.standardizedFileURL, frame: frame, windows: windows(pid: pid))
+            return DockEntry(pid: pid, name: string(item, kAXTitleAttribute) ?? "应用", url: url.standardizedFileURL, frame: frame, windows: windowProvider(pid))
         }
     }
     static func dockItem(at point: CGPoint) -> AXUIElement? {
