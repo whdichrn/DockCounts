@@ -12,7 +12,8 @@ final class ClickInterceptor {
     func start() -> Bool {
         if let tap { return CGEvent.tapIsEnabled(tap: tap) }
         let mask = [CGEventType.leftMouseDown, .leftMouseUp, .leftMouseDragged].reduce(CGEventMask(0)) { $0 | (1 << $1.rawValue) }
-        tap = CGEvent.tapCreate(tap: .cgSessionEventTap, place: .headInsertEventTap, options: .defaultTap, eventsOfInterest: mask, callback: { proxy, type, event, pointer in
+        // Listen immediately before delivery to applications, including assistive mouse input.
+        tap = CGEvent.tapCreate(tap: .cgAnnotatedSessionEventTap, place: .headInsertEventTap, options: .defaultTap, eventsOfInterest: mask, callback: { proxy, type, event, pointer in
             guard let pointer else { return Unmanaged.passUnretained(event) }
             return Unmanaged<ClickInterceptor>.fromOpaque(pointer).takeUnretainedValue().handle(proxy, type, event)
         }, userInfo: Unmanaged.passUnretained(self).toOpaque())

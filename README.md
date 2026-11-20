@@ -11,7 +11,7 @@
 ## 使用
 
 1. 将构建好的 `DockCounts.app` 放到固定位置（例如 `~/Applications`）后启动。
-2. 在“系统设置 → 隐私与安全性 → 辅助功能”中允许 DockCounts。首次启动的设置窗口提供入口。授权后若仍无法接管点击，退出并重新启动。
+2. 在“系统设置 → 隐私与安全性 → 辅助功能”中允许 DockCounts。首次启动的设置窗口提供入口。授权后若仍无法接管点击，退出并重新启动。重新构建或签名后，若设置中已开启但程序仍报告未授权，请移除旧 DockCounts 记录，再添加当前安装路径的应用。
 3. 在“系统设置 → 桌面与程序坞”开启“将窗口最小化至应用程序图标”。
 4. 从菜单栏的叠放窗口图标可暂停、打开设置或退出。
 
@@ -39,6 +39,8 @@ DOCKCOUNTS_UNIVERSAL=1 scripts/build-app.sh
 scripts/test-live.sh
 # 包括原生菜单内容的完整桌面集成测试（先退出已有 DockCounts）
 DOCKCOUNTS_TEST_MENU=1 scripts/test-live.sh
+# 已安装版本的交互验收 fixture（结束后 Ctrl-C 清理）
+DOCKCOUNTS_INTERACTIVE=1 scripts/test-live.sh
 ```
 
 该脚本创建一个一次性应用，打开三个已命名窗口并最小化其中一个，验证真实窗口总数、最小化数、Dock 图标匹配，以及恢复窗口后的最小化、主窗口和前台应用状态。结束时退出并清理测试应用。请不要同时运行第二个测试 fixture。

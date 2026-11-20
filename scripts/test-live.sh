@@ -18,7 +18,11 @@ cat > "$fixture_app/Contents/Info.plist" <<'PLIST'
 </dict></plist>
 PLIST
 codesign --force --sign - "$fixture_app"
-"$fixture_app/Contents/MacOS/DockCountsFixture" &
+if [[ "${DOCKCOUNTS_INTERACTIVE:-0}" == "1" ]]; then
+    "$fixture_app/Contents/MacOS/DockCountsFixture" --dock-click-surface &
+else
+    "$fixture_app/Contents/MacOS/DockCountsFixture" &
+fi
 fixture_pid=$!
 test_app_pid=""
 cleanup() {
@@ -29,6 +33,11 @@ cleanup() {
 }
 trap cleanup EXIT
 sleep 2
+if [[ "${DOCKCOUNTS_INTERACTIVE:-0}" == "1" ]]; then
+    printf 'Interactive fixture ready. Select Beta from its Dock window menu; press Ctrl-C here to clean up.\n'
+    wait "$fixture_pid"
+    exit 0
+fi
 DOCKCOUNTS_LIVE_TESTS=1 swift test --filter LiveAccessibilityTests/testFixtureWindowInventoryAndDockMapping
 if [[ "${DOCKCOUNTS_TEST_MENU:-0}" == "1" ]]; then
     scripts/build-app.sh debug

@@ -4,7 +4,7 @@
 
 ## 已验证
 
-- `swift test`：9 项无需辅助功能权限的测试通过。另 3 项真实桌面集成测试在普通测试中显式跳过，避免误操作用户窗口。
+- `swift test`：9 项无需辅助功能权限的测试通过。另 5 项真实桌面 / 交互验收测试在普通测试中显式跳过，避免误操作用户窗口。
 - `DOCKCOUNTS_TEST_MENU=1 scripts/test-live.sh`：对一次性 fixture 应用执行 3 项真实桌面集成测试：
   1. 读取三个标准窗口，其中一个最小化；验证标题集合、`3·1` 计数、Dock 图标映射及当前点击命中。
   2. 调试程序从后台通过生产点击处理器显示原生菜单；从真实辅助功能树验证菜单只有应用标题和三个窗口，最小化窗口带状态文字。
@@ -19,9 +19,17 @@
 
 这些测试创建内存中的 CGEvent 并直接调用生产事件处理函数，不向桌面注入鼠标输入。菜单集成驱动同样通过进程内回调触发，而不是伪装为物理鼠标测试。
 
-## 尚需人工验收的范围
+## 独立安装版与原生输入验收
 
-本机计算机操作工具不能直接定位并点击系统 Dock，也不能选择其外部弹出菜单，因此没有将“真实鼠标点击 Dock → 选菜单项”的完整物理输入链路标记为已自动化通过。事件处理、原生菜单内容和生产恢复方法分别通过了测试。
+安装到固定路径后，通过系统设置重新添加当前签名的 DockCounts，已确认独立启动显示“辅助功能已授权”和“运行中”。旧的 ad-hoc 签名授权记录可能需要移除后重新添加，单纯开关旧记录不能更新签名身份。
+
+原生自动化工具的点击从 annotated session 阶段进入，并可能保留 Command 修饰键。生产事件 tap 已放在应用接收事件前的 annotated session 阶段，覆盖这类辅助输入。清除测试工具残留修饰键后，已用原生点击触发独立安装版的窗口菜单，真实辅助功能树检查通过；这一过程没有使用调试菜单驱动。
+
+交互 fixture 可用 `DOCKCOUNTS_INTERACTIVE=1 scripts/test-live.sh` 启动，测试结束后 Ctrl-C 清理。它额外打开一个普通层级的临时测试界面以定位 Dock 下方屏幕坐标，该界面标记为浮动窗口，不计入三个标准测试窗口。
+
+通过 `DOCKCOUNTS_E2E_EXPECT_MINIMIZED=1 swift test --filter LiveAccessibilityTests/testInstalledEndToEndWindowState` 可断言选择前的状态；`DOCKCOUNTS_AWAIT_NATIVE_SELECTION=1 swift test --filter LiveAccessibilityTests/testAwaitNativeWindowSelection` 会最多等待 180 秒，由本机操作者选择 Beta 后断言已恢复、成为主窗口与前台应用。完整原生菜单选择链路的结果待最终复核。
+
+## 尚需人工验收的范围
 
 实体多显示器、全部 Dock 方向与放大动画组合、跨 Space / 全屏切换，以及不同第三方应用的完整窗口暴露情况，均不在本次实机覆盖范围内。多屏坐标换算和屏幕边界判断已有单元测试。本机系统不是 macOS 15，最低系统版本由包声明及两架构 Mach-O 记录证明；仓库 CI 在 macOS 15 runner 构建并运行无权限测试，CI 结果以 GitHub Actions 为准。
 

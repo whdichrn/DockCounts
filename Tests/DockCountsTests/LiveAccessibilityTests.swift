@@ -42,4 +42,41 @@ final class LiveAccessibilityTests: XCTestCase {
         XCTAssertTrue(fixture.isActive)
     }
 
+    func testInstalledEndToEndWindowState() throws {
+        guard let raw = ProcessInfo.processInfo.environment["DOCKCOUNTS_E2E_EXPECT_MINIMIZED"], let expected = Int(raw) else { throw XCTSkip("Requires native input acceptance against the installed app.") }
+        let fixture = try XCTUnwrap(NSRunningApplication.runningApplications(withBundleIdentifier: "io.github.whdichrn.DockCountsFixture").first)
+        let windows = try XCTUnwrap(AX.windows(pid: fixture.processIdentifier))
+        let beta = try XCTUnwrap(windows.first { $0.title == "DockCounts Test Beta" })
+        XCTAssertEqual(windows.count, 3)
+        XCTAssertEqual(windows.filter(\.minimized).count, expected)
+        if expected == 0 {
+            XCTAssertFalse(beta.minimized)
+            XCTAssertEqual(AX.value(beta.element, kAXMainAttribute) as? Bool, true)
+        }
+        print("NATIVE INPUT RESULT:", windows.map { ($0.title, $0.minimized) }, "fixtureActive:", fixture.isActive)
+        let installed = try XCTUnwrap(NSRunningApplication.runningApplications(withBundleIdentifier: "io.github.whdichrn.DockCounts").first)
+        for window in AX.value(AXUIElementCreateApplication(installed.processIdentifier), kAXWindowsAttribute) as? [AXUIElement] ?? [] {
+            if AX.string(window, kAXTitleAttribute) == "DockCounts" { print("SETTINGS FRAME:", String(describing: AX.frame(window))) }
+        }
+    }
+
+    func testAwaitNativeWindowSelection() throws {
+        guard ProcessInfo.processInfo.environment["DOCKCOUNTS_AWAIT_NATIVE_SELECTION"] == "1" else { throw XCTSkip("Requires interactive selection of the fixture's Beta window.") }
+        let fixture = try XCTUnwrap(NSRunningApplication.runningApplications(withBundleIdentifier: "io.github.whdichrn.DockCountsFixture").first)
+        let beta = try XCTUnwrap(AX.windows(pid: fixture.processIdentifier)?.first { $0.title == "DockCounts Test Beta" })
+        let deadline = Date().addingTimeInterval(180)
+        while Date() < deadline && AX.value(beta.element, kAXMinimizedAttribute) as? Bool != false {
+            RunLoop.current.run(until: Date().addingTimeInterval(0.05))
+        }
+        let activationDeadline = Date().addingTimeInterval(3)
+        while Date() < activationDeadline && !fixture.isActive {
+            RunLoop.current.run(until: Date().addingTimeInterval(0.05))
+        }
+        XCTAssertEqual(AX.value(beta.element, kAXMinimizedAttribute) as? Bool, false)
+        XCTAssertEqual(AX.value(beta.element, kAXMainAttribute) as? Bool, true)
+        XCTAssertTrue(fixture.isActive)
+        XCTAssertEqual(AX.windows(pid: fixture.processIdentifier)?.filter(\.minimized).count, 0)
+        print("NATIVE MENU SELECTION: Beta restored, main window, fixtureActive=\(fixture.isActive)")
+    }
+
 }
