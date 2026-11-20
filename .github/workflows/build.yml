@@ -1,0 +1,17 @@
+name: Build and test
+on:
+  push:
+  pull_request:
+jobs:
+  macos:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Unit tests (no Accessibility permission required)
+        run: swift test
+      - name: Build macOS application
+        run: scripts/build-app.sh
+      - name: Verify bundle signature and deployment target
+        run: |
+          codesign --verify --strict dist/DockCounts.app
+          /usr/libexec/PlistBuddy -c 'Print LSMinimumSystemVersion' dist/DockCounts.app/Contents/Info.plist
