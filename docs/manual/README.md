@@ -1,8 +1,8 @@
-# DockCounts 0.4.0 实机图解
+# DockCounts 0.4.1 实机图解
 
-[下载四页 PDF 手册](https://github.com/whdichrn/DockCounts/releases/download/v0.4.0/DockCounts-0.4.0-Quick-Guide-zh-CN.pdf) · [下载软件通用版](https://github.com/whdichrn/DockCounts/releases/download/v0.4.0/DockCounts-0.4.0-universal.zip)
+[下载四页 PDF 手册](https://github.com/whdichrn/DockCounts/releases/download/v0.4.1/DockCounts-0.4.1-Quick-Guide-zh-CN.pdf) · [下载软件通用版](https://github.com/whdichrn/DockCounts/releases/download/v0.4.1/DockCounts-0.4.1-universal.zip)
 
-新增设置截图来自本机运行的 **0.4.0 安装版**。下方计数、Dock 与恢复窗口局部沿用 0.3 实机图，窗口菜单局部沿用 0.2 实机图；本轮已重新验证真实窗口、菜单内容和恢复行为。图片只裁切相关区域，没有重绘界面。截图机为 macOS 27.2.1，软件最低支持 macOS 15。
+新增设置截图来自本机运行的 **0.4.0 安装版**。下方计数、Dock 与恢复窗口局部沿用 0.3 实机图，窗口菜单局部沿用 0.2 实机图；本轮已重新验证真实窗口、菜单内容和恢复行为。菜单栏字形示意来自 0.4.1 安装包的原始矢量资源；其他实机图片只裁切相关区域，没有重绘界面。截图机为 macOS 27.2.1，软件最低支持 macOS 15。
 
 ## 按需开启功能
 
@@ -72,7 +72,7 @@
 
 菜单栏的这个图标可打开设置、暂停或退出：
 
-![DockCounts 菜单栏图标](screenshots/05-menubar-icon.png)
+![DC 菜单栏字形示意，来自安装包原始矢量资源](screenshots/17-dc-menubar-symbol.png)
 
 当前版本使用本地 ad-hoc 签名，未做 Developer ID 公证。重新构建或签名后，如果旧的辅助功能授权失效，请移除旧记录，再添加当前安装包。不同应用的窗口数量取决于它们提供的辅助功能信息。
 
@@ -84,7 +84,11 @@
 python3 scripts/build_manual.py
 ```
 
-输出为 `output/pdf/DockCounts-0.4.0-Quick-Guide-zh-CN.pdf`。PDF 使用截图目录中的原始局部图，并嵌入中文字体。
+输出为 `output/pdf/DockCounts-0.4.1-Quick-Guide-zh-CN.pdf`。PDF 使用截图目录中的原始局部图，并嵌入中文字体。
+
+## 0.4.1 更新
+
+采用已选定的方案 B：D、C 统一衬线体，C 缩小并位于右下方交错。菜单栏图标为单色模板，自动跟随系统明暗外观。字形以纯矢量路径保存，避免遮罩导出成低分辨率图片。
 
 ## 0.3.0 更新
 

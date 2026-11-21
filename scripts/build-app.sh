@@ -3,7 +3,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 configuration="${1:-release}"
 version="$(cat VERSION)"
-build_number="${DOCKCOUNTS_BUILD_NUMBER:-4}"
+build_number="${DOCKCOUNTS_BUILD_NUMBER:-5}"
 build_flags=(-c "$configuration")
 if [[ "${DOCKCOUNTS_UNIVERSAL:-0}" == "1" ]]; then
     build_flags+=(--arch arm64 --arch x86_64)
