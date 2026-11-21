@@ -1,8 +1,8 @@
-# DockCounts 0.4.1 实机图解
+# DockCounts 0.4.2 实机图解
 
-[下载四页 PDF 手册](https://github.com/whdichrn/DockCounts/releases/download/v0.4.1/DockCounts-0.4.1-Quick-Guide-zh-CN.pdf) · [下载软件通用版](https://github.com/whdichrn/DockCounts/releases/download/v0.4.1/DockCounts-0.4.1-universal.zip)
+[下载四页 PDF 手册](https://github.com/whdichrn/DockCounts/releases/download/v0.4.2/DockCounts-0.4.2-Quick-Guide-zh-CN.pdf) · [下载软件通用版](https://github.com/whdichrn/DockCounts/releases/download/v0.4.2/DockCounts-0.4.2-universal.zip)
 
-新增设置截图来自本机运行的 **0.4.0 安装版**。下方计数、Dock 与恢复窗口局部沿用 0.3 实机图，窗口菜单局部沿用 0.2 实机图；本轮已重新验证真实窗口、菜单内容和恢复行为。菜单栏字形示意来自 0.4.1 安装包的原始矢量资源；其他实机图片只裁切相关区域，没有重绘界面。截图机为 macOS 27.2.1，软件最低支持 macOS 15。
+多彩后景、关于页和新版通用设置截图来自本机运行的 **0.4.2 安装版**，其他功能设置局部沿用 0.4.0 实机图。下方计数、Dock 与恢复窗口局部沿用 0.3 实机图，窗口菜单局部沿用 0.2 实机图；本轮已重新验证真实窗口、菜单内容和恢复行为。菜单栏字形示意来自 0.4.1 安装包的原始矢量资源；其他实机图片只裁切相关区域，没有重绘界面。截图机为 macOS 27.2.1，软件最低支持 macOS 15。
 
 ## 按需开启功能
 
@@ -13,7 +13,7 @@
 - **角标外观**：可单独关闭角标，窗口列表继续工作；关闭功能时也能预览和调整外观。
 - **关于**：查看版本，打开项目主页或版本下载页。
 
-![通用设置实机画面](screenshots/09-general-settings.jpg)
+![新版通用设置实机画面](screenshots/18-dc-general.jpg)
 
 ![窗口选择与单窗口选项](screenshots/10-window-settings.jpg)
 
@@ -84,7 +84,17 @@
 python3 scripts/build_manual.py
 ```
 
-输出为 `output/pdf/DockCounts-0.4.1-Quick-Guide-zh-CN.pdf`。PDF 使用截图目录中的原始局部图，并嵌入中文字体。
+输出为 `output/pdf/DockCounts-0.4.2-Quick-Guide-zh-CN.pdf`。PDF 使用截图目录中的原始局部图，并嵌入中文字体。
+
+## 0.4.2 更新
+
+应用图标以同一衬线 DC 字形重做，使用青蓝、紫色与珊瑚色渐变。设置窗口固定大小，禁用最小化、缩放、填满和全屏。
+
+![新版多彩 DC 应用图标](../../Sources/DockCounts/Resources/AppIcon.png)
+
+角标实时预览可切换多彩、明亮、深色后景；只影响预览，不会更改桌面或实际角标的外观参数。以下使用同一组材质参数，仅切换预览后景：
+
+![安装版三种后景预览](screenshots/23-preview-backdrops.png)
 
 ## 0.4.1 更新
 
@@ -94,6 +104,4 @@ python3 scripts/build_manual.py
 
 补齐 App 图标和单色菜单栏图标；角标在桌面与 Dock 过渡中复用面板，使用独立的位置跟踪与短暂失败容错。macOS 26+ 在减弱透明效果下使用保留模糊的清晰玻璃配方。
 
-![新版 App 图标](../../Sources/DockCounts/Resources/AppIcon.png)
-
-详细测试方式和已验证范围见 [0.4.0 验证记录](../0.4.0-validation.md)。
+详细测试方式和已验证范围见 [0.4.2 验证记录](../0.4.2-validation.md)。

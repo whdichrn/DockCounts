@@ -128,7 +128,7 @@ c.showPage()
 text('按需开启，配置会保留',M,796,25,'GuideBold')
 text('通用 / 窗口选择 / 角标外观 / 关于',M,770,11,color=MUTED)
 text('总开关与开机启动',M,736,14,'GuideBold')
-photo(detail('09-general-settings.jpg',(64,140,1256,717)),(W-480)/2,485,480)
+photo(detail('18-dc-general.jpg',(64,140,1256,717)),(W-480)/2,485,480)
 para('总开关暂停整个工具，保留配置。登录 Mac 时自动启动由系统管理；退出重启应用会保留你的选择。恢复默认设置不会改变系统登录项。',M,470,CW,10.8,17)
 text('窗口选择可以单独关闭',M,413,14,'GuideBold')
 photo(detail('10-window-settings.jpg',(64,192,1256,488)),(W-480)/2,275,480)
@@ -141,14 +141,14 @@ footer(3)
 c.showPage()
 
 text('让角标融入你的 Dock',M,796,25,'GuideBold')
-text('默认中性细描边；可随时还原外观。以下为安装版实时预览裁切。',M,770,10.5,color=MUTED)
-variants=[('11-badge-settings.jpg','自适应'),('material-glass.jpg','柔和玻璃'),('material-clear.jpg','清透玻璃'),('material-frosted.jpg','哑光磨砂'),('12-custom-tint.jpg','纯色 + 自选色')]
+text('安装版三种后景预览；下方材质与颜色设置示例沿用 0.4。',M,770,10.5,color=MUTED)
+variants=[('20-preview-colorful.jpg','多彩后景'),('21-preview-light.jpg','明亮后景'),('22-preview-dark.jpg','深色后景')]
 for index,(name,label) in enumerate(variants):
-    width=94; x=M+index*(CW-94)/4
-    photo(detail(name,(50,100,290,320)),x,657,width)
-    centered(label,x+width/2,641,9.3,color=MUTED)
+    width=130; x=M+index*(CW-130)/2
+    photo(detail(name,(56,132,352,356)),x,650,width)
+    centered(label,x+width/2,634,9.3,color=MUTED)
 para('背景强度仅影响材质，数字保持清晰。关闭高光会使用哑光外观；系统原生玻璃的折射亮边由系统统一绘制。',M,619,CW,10.6,16)
-photo(detail('11-badge-settings.jpg',(64,643,1256,1470)),(W-440)/2,285,440)
+photo(detail('11-badge-settings.jpg',(64,643,1256,1470)),(W-440)/2,276,440)
 text('颜色：中性 / 系统主题色 / 自选颜色 / 无染色',M,267,11,'GuideBold')
 photo(detail('15-colors-settings.jpg',(64,980,1256,1432)),(W-440)/2,91,440)
 text('自选颜色支持系统色板或六位代码；向下滚动可见全部颜色设置。',M,76,9.4,color=MUTED)

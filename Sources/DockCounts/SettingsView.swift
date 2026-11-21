@@ -4,6 +4,7 @@ import AppKit
 struct SettingsView: View {
     @ObservedObject var controller: AppController
     @State private var confirmReset = false
+    @State private var previewBackdrop = PreviewBackdrop.colorful
     var body: some View {
         TabView(selection: $controller.settingsTab) {
             general.tabItem { Label("通用", systemImage: "gearshape") }.tag(SettingsTab.general)
@@ -72,16 +73,22 @@ struct SettingsView: View {
         VStack(spacing: 0) {
             HStack(spacing: 22) {
                 ZStack {
-                    RoundedRectangle(cornerRadius: 12).fill(LinearGradient(colors: [Color.blue.opacity(0.18), Color.orange.opacity(0.16)], startPoint: .topLeading, endPoint: .bottomTrailing))
+                    BadgePreviewBackdrop(style: previewBackdrop)
                     Image(nsImage: AppArtwork.appIcon).resizable().frame(width: 64, height: 64)
-                    CountBadge(counts: WindowCounts(minimized: 2, total: 5), appearance: controller.preferences.appearance)
-                        .offset(x: 22, y: 26)
-                }.frame(width: 114, height: 90)
+                    CountBadge(counts: WindowCounts(minimized: 2, total: 5), metrics: .make(counts: WindowCounts(minimized: 2, total: 5), tileSide: 64, scale: 2), appearance: controller.preferences.appearance, inWindowBackdrop: true)
+                        .offset(x: 13, y: 24)
+                }.frame(width: 148, height: 112).clipShape(RoundedRectangle(cornerRadius: 12))
                 VStack(alignment: .leading, spacing: 5) {
                     Text("角标实时预览").font(.headline)
                     Text("窗口总数 · 已最小化数").foregroundStyle(.secondary)
                     Text(controller.preferences.badgesEnabled && controller.preferences.enabled ? "调整会同步到 Dock。" : "功能关闭时仍可调整和预览外观。")
                         .font(.caption).foregroundStyle(.secondary)
+                    Picker("预览后景", selection: $previewBackdrop) {
+                        Text("多彩").tag(PreviewBackdrop.colorful)
+                        Text("明亮").tag(PreviewBackdrop.light)
+                        Text("深色").tag(PreviewBackdrop.dark)
+                    }.pickerStyle(.segmented).labelsHidden().frame(maxWidth: 210)
+                        .accessibilityIdentifier("preview-backdrop")
                 }
                 Spacer()
                 Button("还原外观") { controller.preferences.appearance = BadgeAppearance() }
@@ -155,6 +162,31 @@ struct SettingsView: View {
                 .font(.caption).foregroundStyle(.secondary)
             Spacer(minLength: 0)
         }.padding(30).frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+private enum PreviewBackdrop { case colorful, light, dark }
+
+private struct BadgePreviewBackdrop: View {
+    let style: PreviewBackdrop
+    var body: some View {
+        GeometryReader { proxy in
+            ZStack {
+                switch style {
+                case .colorful:
+                    LinearGradient(colors: [Color(red: 0.12, green: 0.63, blue: 0.81), Color(red: 0.45, green: 0.31, blue: 0.81), Color(red: 0.91, green: 0.35, blue: 0.49), Color(red: 0.98, green: 0.66, blue: 0.33)], startPoint: .topLeading, endPoint: .bottomTrailing)
+                case .light:
+                    LinearGradient(colors: [Color(red: 0.94, green: 0.97, blue: 1), Color(red: 0.80, green: 0.88, blue: 0.95)], startPoint: .topLeading, endPoint: .bottomTrailing)
+                case .dark:
+                    LinearGradient(colors: [Color(red: 0.16, green: 0.20, blue: 0.31), Color(red: 0.05, green: 0.08, blue: 0.15)], startPoint: .topLeading, endPoint: .bottomTrailing)
+                }
+                Circle().fill(.white.opacity(style == .dark ? 0.12 : 0.20))
+                    .frame(width: proxy.size.width * 0.75).offset(x: -proxy.size.width * 0.4, y: -proxy.size.height * 0.4)
+                RoundedRectangle(cornerRadius: 8).fill(.white.opacity(style == .dark ? 0.10 : 0.24))
+                    .frame(width: proxy.size.width * 1.5, height: 12)
+                    .rotationEffect(.degrees(-24)).offset(y: proxy.size.height * 0.3)
+            }
+        }.accessibilityHidden(true)
     }
 }
 

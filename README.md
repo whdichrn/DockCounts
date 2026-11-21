@@ -5,13 +5,13 @@
 - 在正在运行的应用 Dock 图标上显示 `窗口总数 · 已最小化数`，例如 `5·2` 表示共 5 个窗口，其中 2 个已最小化。
 - 普通左键点击有窗口的应用图标，显示只含该应用窗口标题、最小化状态的 SwiftUI 菜单；选择即可恢复、切换到该窗口。支持方向键选择、回车确认、Esc 或点击外部关闭。
 - 总开关、角标和窗口选择分别控制；可选择只有一个窗口时是否也显示列表。关闭单窗口列表时，单窗口点击保留 Dock 的系统行为。
-- 原生设置窗口包含通用、窗口选择、角标外观和关于四页。登录 Mac 时自动启动由系统登录项管理，状态与系统同步；关于页提供项目主页和版本下载入口。
+- 原生设置窗口包含通用、窗口选择、角标外观和关于四页；窗口固定大小，禁用最小化、最大化和全屏。登录 Mac 时自动启动由系统登录项管理，状态与系统同步；关于页提供项目主页和版本下载入口。
 - 五种角标材质：自适应、柔和玻璃、清透玻璃、哑光磨砂和纯色；可调背景不透明度、附加描边、高光、阴影、鲜明显示、主题色或自选染色、染色强度及数字颜色。更改即时生效并保存。
 - 右键、Command / Control / Option / Shift 点击、零窗口应用保留系统行为。拖动超过 5 pt 后将原始按下事件交回 Dock，继续原生拖动。
 - 仅在系统开启“将窗口最小化至应用程序图标”时工作；关闭该选项或暂停程序后，移除角标并停止点击接管。
 - 没有窗口预览、截图采集、网络请求、遥测或额外窗口管理功能。
 
-[查看实机图解与简明手册](docs/manual/README.md) · [下载四页 PDF 手册](https://github.com/whdichrn/DockCounts/releases/download/v0.4.1/DockCounts-0.4.1-Quick-Guide-zh-CN.pdf)
+[查看实机图解与简明手册](docs/manual/README.md) · [下载四页 PDF 手册](https://github.com/whdichrn/DockCounts/releases/download/v0.4.2/DockCounts-0.4.2-Quick-Guide-zh-CN.pdf)
 
 ## 使用
 
@@ -27,6 +27,8 @@
 
 菜单栏采用交错的衬线大写 DC，C 较小并位于右下方，使用单色模板自动适配系统明暗外观。
 
+应用图标沿用同一衬线 DC 字形，配青蓝、紫色与珊瑚色渐变。角标预览可在多彩、明亮、深色后景之间切换，方便对照材质与染色效果。
+
 完整图标源文件位于 `Artwork/`，打包资源位于 `Sources/DockCounts/Resources/`，包括多尺寸 ICNS、1024 px PNG 和单色菜单栏 PDF。安装 `librsvg` 后可用 `scripts/generate-icons.sh` 从 SVG 重新生成。
 
 macOS 26+ 使用 `NSGlassEffectView`：普通模式采用 regular；开启“减弱透明效果”时采用 clear 加中性遮蔽，在本机 macOS 27.2.1 的对照测试中仍有背景模糊。macOS 15 使用 `NSVisualEffectView` 的公开兼容路径，减弱透明效果下仍受旧系统材质策略约束。
@@ -34,6 +36,8 @@ macOS 26+ 使用 `NSGlassEffectView`：普通模式采用 regular；开启“减
 [0.3.0 改动与验证边界](docs/0.3.0-validation.md)
 
 [0.4.0 设置与验证记录](docs/0.4.0-validation.md)
+
+[0.4.2 多彩图标、后景预览与窗口限制](docs/0.4.2-validation.md)
 
 ## 构建与测试
 

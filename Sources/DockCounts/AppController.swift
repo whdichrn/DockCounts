@@ -86,8 +86,11 @@ final class AppController: NSObject, ObservableObject {
         if let tab { settingsTab = tab }
         login.refresh()
         if settingsWindow == nil {
-            let window = NSWindow(contentRect: NSRect(x: 100, y: 260, width: 660, height: 680), styleMask: [.titled, .closable, .resizable, .miniaturizable], backing: .buffered, defer: false)
+            let window = NSWindow(contentRect: NSRect(x: 100, y: 260, width: 660, height: 680), styleMask: [.titled, .closable], backing: .buffered, defer: false)
             window.title = "DockCounts"
+            window.collectionBehavior = [.fullScreenNone]
+            window.standardWindowButton(.miniaturizeButton)?.isEnabled = false
+            window.standardWindowButton(.zoomButton)?.isEnabled = false
             window.isReleasedWhenClosed = false
             window.contentView = NSHostingView(rootView: SettingsView(controller: self))
             window.minSize = NSSize(width: 590, height: 560)

@@ -1,26 +1,42 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
  <defs>
-  <linearGradient id="base" x1="0" y1="0" x2="0.7" y2="1"><stop stop-color="#6992BC"/><stop offset="0.48" stop-color="#436D9D"/><stop offset="1" stop-color="#26466D"/></linearGradient>
-  <linearGradient id="rim" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#FFF" stop-opacity="0.65"/><stop offset="1" stop-color="#FFF" stop-opacity="0.10"/></linearGradient>
-  <linearGradient id="window" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#FCFDFF"/><stop offset="1" stop-color="#D7E5F4"/></linearGradient>
-  <linearGradient id="dock" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#E5EFFA" stop-opacity="0.35"/><stop offset="1" stop-color="#C5DAF3" stop-opacity="0.14"/></linearGradient>
-  <filter id="baseShadow" x="-30%" y="-30%" width="160%" height="180%"><feDropShadow dy="16" stdDeviation="15" flood-color="#162C48" flood-opacity="0.28"/></filter>
-  <filter id="cardShadow" x="-35%" y="-35%" width="180%" height="190%"><feDropShadow dy="17" stdDeviation="17" flood-color="#193C64" flood-opacity="0.28"/></filter>
+  <linearGradient id="base" x1="0" y1="0" x2=".8" y2="1">
+   <stop stop-color="#244BC1"/><stop offset=".5" stop-color="#5142AD"/><stop offset="1" stop-color="#592968"/>
+  </linearGradient>
+  <radialGradient id="teal" cx=".03" cy=".05" r=".9">
+   <stop stop-color="#29C6D1" stop-opacity=".92"/><stop offset="1" stop-color="#29C6D1" stop-opacity="0"/>
+  </radialGradient>
+  <radialGradient id="violet" cx="1" cy=".05" r=".85">
+   <stop stop-color="#9663EF" stop-opacity=".92"/><stop offset="1" stop-color="#9663EF" stop-opacity="0"/>
+  </radialGradient>
+  <radialGradient id="coral" cx="1" cy="1" r=".93">
+   <stop stop-color="#F38A66"/><stop offset=".4" stop-color="#E45683" stop-opacity=".85"/><stop offset="1" stop-color="#D34392" stop-opacity="0"/>
+  </radialGradient>
+  <radialGradient id="blue" cx="0" cy="1" r=".9">
+   <stop stop-color="#2D8CE2" stop-opacity=".9"/><stop offset="1" stop-color="#2D8CE2" stop-opacity="0"/>
+  </radialGradient>
+  <linearGradient id="edge" x1="0" y1="0" x2="0" y2="1">
+   <stop stop-color="#E5F1FF" stop-opacity=".48"/><stop offset=".55" stop-color="#C7DDF4" stop-opacity=".1"/><stop offset="1" stop-color="#071E37" stop-opacity=".38"/>
+  </linearGradient>
+  <linearGradient id="ivory" x1="0" y1="0" x2=".2" y2="1">
+   <stop stop-color="#FFFFFF"/><stop offset=".65" stop-color="#F2F4F6"/><stop offset="1" stop-color="#D6E2EF"/>
+  </linearGradient>
+  <filter id="tileShadow" x="-.2" y="-.2" width="1.4" height="1.5">
+   <feDropShadow dy="15" stdDeviation="13" flood-color="#0B1C30" flood-opacity=".24"/>
+  </filter>
+  <filter id="letterShadow" x="-.1" y="-.1" width="1.2" height="1.3">
+   <feDropShadow dx="0" dy=".15" stdDeviation=".10" flood-color="#081C32" flood-opacity=".32"/>
+  </filter>
  </defs>
- <rect x="104" y="104" width="816" height="816" rx="184" fill="url(#base)" filter="url(#baseShadow)"/>
- <rect x="108" y="108" width="808" height="808" rx="180" fill="none" stroke="url(#rim)" stroke-width="5"/>
- <rect x="250" y="242" width="408" height="284" rx="45" fill="#C5D9F0" fill-opacity="0.69" stroke="#EDF5FF" stroke-opacity="0.58" stroke-width="5"/>
- <path d="M251 306H657" stroke="#F5F9FF" stroke-opacity="0.43" stroke-width="5"/>
- <g filter="url(#cardShadow)">
-  <rect x="332" y="336" width="420" height="286" rx="46" fill="url(#window)"/>
-  <rect x="334" y="338" width="416" height="282" rx="44" fill="none" stroke="#FFF" stroke-opacity="0.8" stroke-width="4"/>
-  <path d="M334 402H750" stroke="#9BB8D7" stroke-opacity="0.55" stroke-width="4"/>
-  <g fill="#698EB5"><circle cx="371" cy="370" r="9"/><circle cx="403" cy="370" r="9"/><circle cx="435" cy="370" r="9"/></g>
- </g>
- <rect x="216" y="674" width="592" height="112" rx="43" fill="url(#dock)" stroke="url(#rim)" stroke-width="4"/>
- <g fill="#EDF5FE">
-  <rect x="274" y="696" width="105" height="66" rx="19" fill-opacity="0.83"/>
-  <rect x="460" y="696" width="105" height="66" rx="19" fill-opacity="0.96"/>
-  <rect x="646" y="696" width="105" height="66" rx="19" fill-opacity="0.69"/>
+ <!-- Same native-icon footprint and optical padding as the previous application icon. -->
+ <rect x="104" y="104" width="816" height="816" rx="184" fill="url(#base)" filter="url(#tileShadow)"/>
+ <rect x="104" y="104" width="816" height="816" rx="184" fill="url(#teal)"/>
+ <rect x="104" y="104" width="816" height="816" rx="184" fill="url(#violet)"/>
+ <rect x="104" y="104" width="816" height="816" rx="184" fill="url(#coral)"/>
+ <rect x="104" y="104" width="816" height="816" rx="184" fill="url(#blue)"/>
+ <rect x="106" y="106" width="812" height="812" rx="182" fill="none" stroke="url(#edge)" stroke-width="3"/>
+ <!-- Approved serif DC monogram: C stays smaller and interlocks at the lower right. -->
+ <g transform="translate(143.45 155.15) scale(39)" filter="url(#letterShadow)">
+  <path fill="url(#ivory)" fill-rule="evenodd" d="M2.299999952316284 2.5H6.800000190734863C9.818995475769043 2.5 11.802831649780273 3.732332706451416 12.716897010803223 5.8509087562561035Q11.654255867004395 5.915915489196777 10.819954872131348 6.368276119232178C10.22541618347168 4.341206073760986 8.825237274169922 3.25 6.600000381469727 3.25H5.700000286102295V14.75H6.600000381469727C7.643998146057129 14.75 8.506389617919922 14.509811401367188 9.189177513122559 14.0454740524292Q9.410178184509277 14.413897514343262 9.69637680053711 14.73466968536377Q9.792986869812012 14.842950820922852 9.894438743591309 14.942998886108398C9.026344299316406 15.307193756103516 7.9941511154174805 15.5 6.800000190734863 15.5H2.299999952316284V14.800000190734863H3.799999952316284V3.200000047683716H2.299999952316284ZM16.15999984741211 6.319999694824219 15.920000076293945 9.079999923706055H15.440000534057617C15.359999656677246 7.519999980926514 14.600000381469727 6.71999979019165 13.40000057220459 6.71999979019165C11.520000457763672 6.71999979019165 10.5600004196167 8.279999732971191 10.5600004196167 11.0C10.5600004196167 13.719999313354492 11.520000457763672 15.280000686645508 13.40000057220459 15.280000686645508C14.680000305175781 15.280000686645508 15.600000381469727 14.480000495910645 16.119998931884766 13.0L16.600000381469727 13.199999809265137C16.0 14.960000038146973 14.840001106262207 15.800000190734863 13.080000877380371 15.800000190734863C10.480000495910645 15.800000190734863 8.800000190734863 13.920000076293945 8.800000190734863 11.0C8.800000190734863 8.079999923706055 10.480000495910645 6.199999809265137 13.080000877380371 6.199999809265137C14.320000648498535 6.199999809265137 15.119999885559082 6.639999866485596 15.680001258850098 7.119999885559082L15.960000038146973 6.319999694824219ZM13.10960578918457 7.09428596496582C13.236371040344238 7.682861804962158 13.300000190734863 8.31973934173584 13.300000190734863 9.0C13.300000190734863 11.089229583740234 12.6998291015625 12.769251823425293 11.513731956481934 13.89758014678955Q10.95758056640625 12.98003101348877 10.922379493713379 11.239045143127441C11.074315071105957 10.578971862792969 11.15000057220459 9.8311128616333 11.15000057220459 9.0L11.149978637695312 8.976065635681152Q11.629621505737305 7.244584083557129 13.10960578918457 7.09428596496582Z"/>
  </g>
 </svg>

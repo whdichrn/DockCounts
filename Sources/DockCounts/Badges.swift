@@ -38,6 +38,7 @@ struct CountBadge: View {
     let counts: WindowCounts
     var metrics: BadgeMetrics? = nil
     var appearance = BadgeAppearance()
+    var inWindowBackdrop = false
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @Environment(\.colorSchemeContrast) private var contrast
     @Environment(\.colorScheme) private var scheme
@@ -59,7 +60,7 @@ struct CountBadge: View {
         .lineLimit(1).minimumScaleFactor(0.55)
         .padding(.horizontal, 2.5)
         .frame(width: m.contentSize.width, height: m.contentSize.height)
-        .background(BadgeMaterial(appearance: appearance, reduceTransparency: reduceTransparency))
+        .background(BadgeMaterial(appearance: appearance, reduceTransparency: reduceTransparency, inWindowBackdrop: inWindowBackdrop))
         .overlay {
             if appearance.edge != .none {
                 Capsule().strokeBorder(primary.opacity(contrast == .increased || appearance.vivid ? 0.40 : 0.18), lineWidth: appearance.edge == .outline ? 1.25 : 1 / m.scale)
@@ -83,13 +84,14 @@ struct CountBadge: View {
 struct BadgeMaterial: NSViewRepresentable {
     let appearance: BadgeAppearance
     let reduceTransparency: Bool
+    var inWindowBackdrop = false
     @Environment(\.colorScheme) private var scheme
     func makeNSView(context: Context) -> BadgeBackdropView { BadgeBackdropView() }
     func updateNSView(_ view: BadgeBackdropView, context: Context) {
         // Reading the appearance ensures dynamic system/accent colors are resolved
         // again when the host changes between light and dark mode.
         _ = scheme
-        view.configure(appearance: appearance, reduced: reduceTransparency)
+        view.configure(appearance: appearance, reduced: reduceTransparency, inWindowBackdrop: inWindowBackdrop)
     }
 }
 
@@ -103,7 +105,7 @@ final class BadgeBackdropView: NSView {
         tint.wantsLayer = true
     }
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
-    func configure(appearance: BadgeAppearance, reduced: Bool) {
+    func configure(appearance: BadgeAppearance, reduced: Bool, inWindowBackdrop: Bool = false) {
         var supportsGlass = false
         #if compiler(>=6.2)
         if #available(macOS 26, *) { supportsGlass = true }
@@ -136,7 +138,10 @@ final class BadgeBackdropView: NSView {
         #else
         tint.layer?.backgroundColor = color?.withAlphaComponent(strength).cgColor
         #endif
-        if let effect = backing as? NSVisualEffectView { effect.isEmphasized = appearance.vivid }
+        if let effect = backing as? NSVisualEffectView {
+            effect.isEmphasized = appearance.vivid
+            effect.blendingMode = inWindowBackdrop ? .withinWindow : .behindWindow
+        }
         if resolved == .solid { backing?.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor }
         needsLayout = true
     }
