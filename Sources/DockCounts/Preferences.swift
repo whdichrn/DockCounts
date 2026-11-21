@@ -1,160 +1,217 @@
 import AppKit
 import SwiftUI
 
-enum SettingsTab: String, CaseIterable { case general, windows, badges, about }
-enum BadgeSurface: String, Codable, CaseIterable, Identifiable {
-    case automatic, glass, clear, frosted, solid
+enum SettingsTab: String, CaseIterable {
+    case general, appearance, about
+}
+
+enum WindowTriggerMode: String, Codable, CaseIterable, Identifiable {
+    case multipleWindows
+    case anyWindow
+
     var id: String { rawValue }
     var title: String {
         switch self {
-        case .automatic: return "自适应"
-        case .glass: return "柔和玻璃"
-        case .clear: return "清透玻璃"
-        case .frosted: return "哑光磨砂"
-        case .solid: return "纯色"
+        case .multipleWindows: return "仅多窗口"
+        case .anyWindow: return "含单窗口"
+        }
+    }
+    var summary: String {
+        switch self {
+        case .multipleWindows: return "仅在应用有多个窗口时弹出选择菜单，单窗口保留系统原样切回或恢复。"
+        case .anyWindow: return "只要应用存在窗口，左键点击即弹出选择菜单。"
         }
     }
 }
-enum BadgeEdge: String, Codable, CaseIterable, Identifiable {
-    case none, hairline, outline
-    var id: String { rawValue }
-    var title: String { self == .none ? "无描边" : self == .hairline ? "细线" : "轮廓" }
-}
-enum BadgeTint: String, Codable, CaseIterable, Identifiable {
-    case neutral, accent, custom, none
+
+enum BadgeVisibilityMode: String, Codable, CaseIterable, Identifiable {
+    case smart
+    case minimizedOnly
+    case always
+
     var id: String { rawValue }
     var title: String {
-        switch self { case .neutral: return "中性"; case .accent: return "系统主题色"; case .custom: return "自选颜色"; case .none: return "无染色" }
+        switch self {
+        case .smart: return "智能降噪"
+        case .minimizedOnly: return "仅含最小化"
+        case .always: return "始终显示"
+        }
+    }
+
+    func shouldShow(_ counts: WindowCounts) -> Bool {
+        switch self {
+        case .smart: return counts.total > 1 || counts.minimized > 0
+        case .minimizedOnly: return counts.minimized > 0
+        case .always: return counts.total > 0
+        }
     }
 }
-enum BadgeTextColor: String, Codable, CaseIterable, Identifiable {
-    case automatic, dark, light
+
+enum BadgePreset: String, Codable, CaseIterable, Identifiable {
+    case glass
+    case frosted
+    case solid
+    case accent
+
     var id: String { rawValue }
-    var title: String { self == .automatic ? "自动" : self == .dark ? "深色" : "浅色" }
+    var title: String {
+        switch self {
+        case .glass: return "系统玻璃"
+        case .frosted: return "柔和磨砂"
+        case .solid: return "高对比纯色"
+        case .accent: return "系统主题色"
+        }
+    }
 }
-struct RGBColor: Codable, Equatable {
-    var red: Double = 0.20
-    var green: Double = 0.48
-    var blue: Double = 0.80
-    var nsColor: NSColor { NSColor(srgbRed: red, green: green, blue: blue, alpha: 1) }
-    init(red: Double = 0.20, green: Double = 0.48, blue: Double = 0.80) { self.red = red; self.green = green; self.blue = blue }
-    init(_ color: NSColor) {
-        let rgb = color.usingColorSpace(.sRGB) ?? .systemBlue
-        self.init(red: rgb.redComponent, green: rgb.greenComponent, blue: rgb.blueComponent)
+
+enum BadgeSize: String, Codable, CaseIterable, Identifiable {
+    case compact
+    case standard
+
+    var id: String { rawValue }
+    var title: String {
+        switch self {
+        case .compact: return "紧凑"
+        case .standard: return "标准"
+        }
     }
-    init?(hex: String) {
-        let digits = hex.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: "#", with: "")
-        guard digits.count == 6, digits.allSatisfy({ $0.isASCII && $0.isHexDigit }), let number = UInt32(digits, radix: 16) else { return nil }
-        self.init(red: Double((number >> 16) & 255) / 255, green: Double((number >> 8) & 255) / 255, blue: Double(number & 255) / 255)
-    }
-    var hex: String {
-        let color = normalized()
-        return String(format: "#%02X%02X%02X", Int((color.red * 255).rounded()), Int((color.green * 255).rounded()), Int((color.blue * 255).rounded()))
-    }
-    func normalized() -> RGBColor { RGBColor(red: red.clampedUnit, green: green.clampedUnit, blue: blue.clampedUnit) }
-}
-private extension Double {
-    var clampedUnit: Double { isFinite ? min(1, max(0, self)) : 0 }
 }
 
 struct BadgeAppearance: Codable, Equatable {
-    var surface: BadgeSurface = .automatic
-    var backgroundOpacity: Double = 1
-    var edge: BadgeEdge = .hairline
-    var highlights = true
-    var shadow = true
-    var vivid = false
-    var tint: BadgeTint = .neutral
-    var tintStrength: Double = 0.55
-    var customColor = RGBColor()
-    var textColor: BadgeTextColor = .automatic
-    init() {}
-    enum CodingKeys: String, CodingKey { case surface, backgroundOpacity, edge, highlights, shadow, vivid, tint, tintStrength, customColor, textColor }
+    var preset: BadgePreset = .glass
+    var size: BadgeSize = .compact
+    var opacity: Double = 1.0
+
+    init(preset: BadgePreset = .glass, size: BadgeSize = .compact, opacity: Double = 1.0) {
+        self.preset = preset
+        self.size = size
+        self.opacity = opacity
+        self = normalized()
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case preset, size, opacity
+        case surface, tint, backgroundOpacity
+    }
+
     init(from decoder: Decoder) throws {
         self.init()
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        surface = try c.decodeIfPresent(BadgeSurface.self, forKey: .surface) ?? surface
-        backgroundOpacity = try c.decodeIfPresent(Double.self, forKey: .backgroundOpacity) ?? backgroundOpacity
-        edge = try c.decodeIfPresent(BadgeEdge.self, forKey: .edge) ?? edge
-        highlights = try c.decodeIfPresent(Bool.self, forKey: .highlights) ?? highlights
-        shadow = try c.decodeIfPresent(Bool.self, forKey: .shadow) ?? shadow
-        vivid = try c.decodeIfPresent(Bool.self, forKey: .vivid) ?? vivid
-        tint = try c.decodeIfPresent(BadgeTint.self, forKey: .tint) ?? tint
-        tintStrength = try c.decodeIfPresent(Double.self, forKey: .tintStrength) ?? tintStrength
-        customColor = try c.decodeIfPresent(RGBColor.self, forKey: .customColor) ?? customColor
-        textColor = try c.decodeIfPresent(BadgeTextColor.self, forKey: .textColor) ?? textColor
+        if let decodedPreset = try c.decodeIfPresent(BadgePreset.self, forKey: .preset) {
+            preset = decodedPreset
+        } else {
+            let legacyTint = try c.decodeIfPresent(String.self, forKey: .tint)
+            let legacySurface = try c.decodeIfPresent(String.self, forKey: .surface)
+            if legacyTint == "accent" {
+                preset = .accent
+            } else if legacySurface == "solid" {
+                preset = .solid
+            } else if legacySurface == "frosted" {
+                preset = .frosted
+            } else {
+                preset = .glass
+            }
+        }
+        size = try c.decodeIfPresent(BadgeSize.self, forKey: .size) ?? size
+        if let decodedOpacity = try c.decodeIfPresent(Double.self, forKey: .opacity) {
+            opacity = decodedOpacity
+        } else if let legacyOpacity = try c.decodeIfPresent(Double.self, forKey: .backgroundOpacity) {
+            opacity = legacyOpacity
+        }
         self = normalized()
     }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        let norm = normalized()
+        try c.encode(norm.preset, forKey: .preset)
+        try c.encode(norm.size, forKey: .size)
+        try c.encode(norm.opacity, forKey: .opacity)
+    }
+
     func normalized() -> Self {
         var result = self
-        result.backgroundOpacity = backgroundOpacity.clampedUnit
-        result.tintStrength = tintStrength.clampedUnit
-        result.customColor = customColor.normalized()
+        result.opacity = opacity.isFinite ? min(1.0, max(0.4, opacity)) : 1.0
         return result
     }
-    func resolvedSurface(reduceTransparency: Bool, supportsGlass: Bool) -> BadgeSurface {
-        switch surface {
-        case .solid: return .solid
-        case .frosted: return .frosted
-        case .automatic, .glass, .clear:
-            guard supportsGlass && highlights else { return .frosted }
-            return surface == .automatic ? (reduceTransparency ? .clear : .glass) : surface
-        }
-    }
-    func tintColor() -> NSColor? {
-        let color: NSColor
-        switch tint {
-        case .none: return nil
-        case .neutral: return .windowBackgroundColor
-        case .accent: color = .controlAccentColor
-        case .custom: color = customColor.nsColor
-        }
-        guard vivid, let rgb = color.usingColorSpace(.sRGB) else { return color }
-        var hue: CGFloat = 0, saturation: CGFloat = 0, brightness: CGFloat = 0, alpha: CGFloat = 0
-        rgb.getHue(&hue, saturation: &saturation, brightness: &brightness, alpha: &alpha)
-        return NSColor(hue: hue, saturation: min(1, saturation * 1.25), brightness: brightness, alpha: 1)
-    }
-    func usesLightText(reduceTransparency: Bool, supportsGlass: Bool, darkAppearance: Bool) -> Bool {
-        if textColor != .automatic { return textColor == .light }
-        let resolved = resolvedSurface(reduceTransparency: reduceTransparency, supportsGlass: supportsGlass)
-        let base: CGFloat = resolved == .clear ? 0.15 : (darkAppearance ? 0.15 : 0.94)
-        guard backgroundOpacity > 0.35, let rgb = tintColor()?.usingColorSpace(.sRGB) else {
-            return resolved == .clear && backgroundOpacity > 0.35 ? true : darkAppearance
-        }
-        let strength = effectiveTintStrength(reduceTransparency: reduceTransparency)
-        let r = base * (1-strength) + rgb.redComponent * strength
-        let g = base * (1-strength) + rgb.greenComponent * strength
-        let b = base * (1-strength) + rgb.blueComponent * strength
-        return 0.2126*r + 0.7152*g + 0.0722*b < 0.48
-    }
-    func effectiveTintStrength(reduceTransparency: Bool) -> CGFloat {
-        // Keep the default regular material neutral; tint becomes visible under
-        // Reduce Transparency or when the person explicitly chooses a color.
-        if tint == .none { return 0 }
-        if tint == .neutral && surface == .automatic && !reduceTransparency { return 0 }
-        return CGFloat(min(1, tintStrength + (vivid && tint != .neutral ? 0.10 : 0)))
-    }
+}
+
+enum DockClickAction: Equatable {
+    case passThrough
+    case openPicker
+    case minimizeSingleWindow
 }
 
 struct AppPreferences: Codable, Equatable {
     var enabled = true
     var badgesEnabled = true
+    var badgeVisibility: BadgeVisibilityMode = .smart
     var windowSelectionEnabled = true
-    var selectSingleWindow = true
+    var triggerMode: WindowTriggerMode = .multipleWindows
+    var minimizeActiveSingleWindow = true
     var appearance = BadgeAppearance()
+
     init() {}
-    enum CodingKeys: String, CodingKey { case enabled, badgesEnabled, windowSelectionEnabled, selectSingleWindow, appearance }
+
+    private enum CodingKeys: String, CodingKey {
+        case enabled, badgesEnabled, badgeVisibility, windowSelectionEnabled, triggerMode, minimizeActiveSingleWindow, appearance
+        case selectSingleWindow
+    }
+
     init(from decoder: Decoder) throws {
         self.init()
         let c = try decoder.container(keyedBy: CodingKeys.self)
         enabled = try c.decodeIfPresent(Bool.self, forKey: .enabled) ?? enabled
         badgesEnabled = try c.decodeIfPresent(Bool.self, forKey: .badgesEnabled) ?? badgesEnabled
+        badgeVisibility = try c.decodeIfPresent(BadgeVisibilityMode.self, forKey: .badgeVisibility) ?? badgeVisibility
         windowSelectionEnabled = try c.decodeIfPresent(Bool.self, forKey: .windowSelectionEnabled) ?? windowSelectionEnabled
-        selectSingleWindow = try c.decodeIfPresent(Bool.self, forKey: .selectSingleWindow) ?? selectSingleWindow
+        if let decodedMode = try c.decodeIfPresent(WindowTriggerMode.self, forKey: .triggerMode) {
+            triggerMode = decodedMode
+        } else if let legacySingle = try c.decodeIfPresent(Bool.self, forKey: .selectSingleWindow) {
+            triggerMode = legacySingle ? .anyWindow : .multipleWindows
+        }
+        minimizeActiveSingleWindow = try c.decodeIfPresent(Bool.self, forKey: .minimizeActiveSingleWindow) ?? minimizeActiveSingleWindow
         appearance = (try? c.decodeIfPresent(BadgeAppearance.self, forKey: .appearance)) ?? appearance
     }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(enabled, forKey: .enabled)
+        try c.encode(badgesEnabled, forKey: .badgesEnabled)
+        try c.encode(badgeVisibility, forKey: .badgeVisibility)
+        try c.encode(windowSelectionEnabled, forKey: .windowSelectionEnabled)
+        try c.encode(triggerMode, forKey: .triggerMode)
+        try c.encode(minimizeActiveSingleWindow, forKey: .minimizeActiveSingleWindow)
+        try c.encode(appearance.normalized(), forKey: .appearance)
+    }
+
     var needsDock: Bool { enabled && (badgesEnabled || windowSelectionEnabled) }
-    func selectsWindow(total: Int) -> Bool { enabled && windowSelectionEnabled && total > 0 && (selectSingleWindow || total > 1) }
+
+    func selectsWindow(total: Int) -> Bool {
+        enabled && windowSelectionEnabled && (triggerMode == .anyWindow ? total > 0 : total > 1)
+    }
+
+    func selectsWindow(counts: WindowCounts) -> Bool {
+        selectsWindow(total: counts.total)
+    }
+
+    func clickAction(windows: [WindowRecord], isAppActive: Bool) -> DockClickAction {
+        guard enabled, windowSelectionEnabled, !windows.isEmpty else { return .passThrough }
+        if minimizeActiveSingleWindow,
+           isAppActive,
+           windows.count == 1,
+           let single = windows.first,
+           !single.minimized,
+           !single.isFullScreen,
+           single.canMinimize {
+            return .minimizeSingleWindow
+        }
+        return selectsWindow(total: windows.count) ? .openPicker : .passThrough
+    }
+
+    func showsBadge(counts: WindowCounts) -> Bool {
+        enabled && badgesEnabled && badgeVisibility.shouldShow(counts)
+    }
 }
 
 final class PreferencesStore {
@@ -162,9 +219,14 @@ final class PreferencesStore {
     let defaults: UserDefaults
     init(defaults: UserDefaults = .standard) { self.defaults = defaults }
     func load() -> AppPreferences {
-        if let data = defaults.data(forKey: Self.key), let preferences = try? JSONDecoder().decode(AppPreferences.self, from: data) { return preferences }
+        if let data = defaults.data(forKey: Self.key),
+           let preferences = try? JSONDecoder().decode(AppPreferences.self, from: data) {
+            return preferences
+        }
         var preferences = AppPreferences()
-        if defaults.object(forKey: "enabled") != nil { preferences.enabled = defaults.bool(forKey: "enabled") }
+        if defaults.object(forKey: "enabled") != nil {
+            preferences.enabled = defaults.bool(forKey: "enabled")
+        }
         return preferences
     }
     func save(_ preferences: AppPreferences) {

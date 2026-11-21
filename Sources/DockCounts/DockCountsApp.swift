@@ -4,15 +4,18 @@ import AppKit
 @main
 struct DockCountsApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var delegate
+
     var body: some Scene {
         MenuBarExtra {
-            StatusView(controller: delegate.controller)
+            StatusMenuView(controller: delegate.controller)
         } label: {
             Image(nsImage: AppArtwork.menuBarIcon).accessibilityLabel("DockCounts")
-        }.menuBarExtraStyle(.window)
+        }
+        .menuBarExtraStyle(.menu)
         .commands {
             CommandGroup(replacing: .appSettings) {
-                Button("设置…") { delegate.controller.showSettings() }.keyboardShortcut(",")
+                Button("设置…") { delegate.controller.showSettings() }
+                    .keyboardShortcut(",")
             }
             CommandGroup(replacing: .appInfo) {
                 Button("关于 DockCounts…", action: delegate.controller.showAbout)
@@ -20,48 +23,57 @@ struct DockCountsApp: App {
         }
     }
 }
+
 final class AppDelegate: NSObject, NSApplicationDelegate {
     let controller = AppController()
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         controller.start()
         #if DEBUG
         if let index = CommandLine.arguments.firstIndex(of: "--smoke-menu"), index + 1 < CommandLine.arguments.count {
             let bundleID = CommandLine.arguments[index + 1]
-            DispatchQueue.main.asyncAfter(deadline: .now() + 8) { self.controller.smokeClick(bundleID: bundleID) }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 8) {
+                self.controller.smokeClick(bundleID: bundleID)
+            }
         }
         #endif
-        if !UserDefaults.standard.bool(forKey: "hasLaunched") || (!controller.trusted && controller.preferences.needsDock) || CommandLine.arguments.contains("--settings") {
+        if !UserDefaults.standard.bool(forKey: "hasLaunched")
+            || (!controller.trusted && controller.preferences.needsDock)
+            || CommandLine.arguments.contains("--settings") {
             UserDefaults.standard.set(true, forKey: "hasLaunched")
             controller.showSettings()
         }
     }
+
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
-        controller.showSettings(); return true
+        controller.showSettings()
+        return true
     }
-    func applicationWillTerminate(_ notification: Notification) { controller.stop() }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        controller.stop()
+    }
 }
-struct StatusView: View {
+
+struct StatusMenuView: View {
     @ObservedObject var controller: AppController
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 13) {
-            HStack(spacing: 9) {
-                Image(nsImage: AppArtwork.appIcon).resizable().frame(width: 32, height: 32)
-                Text("DockCounts").font(.headline)
-                Spacer()
-                Text(ProjectLinks.version).font(.caption).foregroundStyle(.secondary)
-            }
-            Text(controller.message).font(.callout).foregroundStyle(.secondary)
-            Toggle("启用 DockCounts", isOn: $controller.preferences.enabled)
-            Divider()
-            Toggle("显示窗口角标", isOn: $controller.preferences.badgesEnabled)
-            Toggle("启用窗口选择", isOn: $controller.preferences.windowSelectionEnabled)
-            HStack {
-                Button("设置…") { controller.showSettings() }
-                Button("关于…", action: controller.showAbout)
-                Spacer()
-                Button("退出") { NSApp.terminate(nil) }
-            }
-        }.padding(18).frame(width: 330)
+        Text(controller.message)
+        if !controller.trusted && controller.preferences.needsDock {
+            Button("授权辅助功能…", action: controller.requestPermission)
+        }
+        Divider()
+        Toggle("启用 DockCounts", isOn: $controller.preferences.enabled)
+        Toggle("显示 Dock 角标", isOn: $controller.preferences.badgesEnabled)
+        Toggle("左键窗口选择", isOn: $controller.preferences.windowSelectionEnabled)
+        Divider()
+        Button("设置…") { controller.showSettings() }
+            .keyboardShortcut(",")
+        Button("关于 DockCounts…", action: controller.showAbout)
+        Divider()
+        Button("退出 DockCounts") { NSApp.terminate(nil) }
+            .keyboardShortcut("q")
     }
 }

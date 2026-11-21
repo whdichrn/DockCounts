@@ -1,82 +1,61 @@
-# DockCounts
+<p align="center">
+  <img src="Sources/DockCounts/Resources/AppIcon.png" width="112" height="112" alt="DockCounts Icon">
+</p>
 
-一个专注于 Dock 窗口计数与选择的 macOS 菜单栏辅助程序。SwiftUI 界面，支持 macOS 15 及以上。
+<h1 align="center">DockCounts</h1>
 
-- 在正在运行的应用 Dock 图标上显示 `窗口总数 · 已最小化数`，例如 `5·2` 表示共 5 个窗口，其中 2 个已最小化。
-- 普通左键点击有窗口的应用图标，显示只含该应用窗口标题、最小化状态的 SwiftUI 菜单；选择即可恢复、切换到该窗口。支持方向键选择、回车确认、Esc 或点击外部关闭。
-- 总开关、角标和窗口选择分别控制；可选择只有一个窗口时是否也显示列表。关闭单窗口列表时，单窗口点击保留 Dock 的系统行为。
-- 原生设置窗口包含通用、窗口选择、角标外观和关于四页；窗口固定大小，禁用最小化、最大化和全屏。登录 Mac 时自动启动由系统登录项管理，状态与系统同步；关于页提供项目主页和版本下载入口。
-- 五种角标材质：自适应、柔和玻璃、清透玻璃、哑光磨砂和纯色；可调背景不透明度、附加描边、高光、阴影、鲜明显示、主题色或自选染色、染色强度及数字颜色。更改即时生效并保存。
-- 右键、Command / Control / Option / Shift 点击、零窗口应用保留系统行为。拖动超过 5 pt 后将原始按下事件交回 Dock，继续原生拖动。
-- 仅在系统开启“将窗口最小化至应用程序图标”时工作；关闭该选项或暂停程序后，移除角标并停止点击接管。
-- 没有窗口预览、截图采集、网络请求、遥测或额外窗口管理功能。
+<p align="center">
+  专注于 Dock 窗口计数与左键精准窗口选择的 macOS 菜单栏工具（SwiftUI / AppKit，支持 macOS 15+）。
+</p>
 
-[查看实机图解与简明手册](docs/manual/README.md) · [下载四页 PDF 手册](https://github.com/whdichrn/DockCounts/releases/download/v0.4.2/DockCounts-0.4.2-Quick-Guide-zh-CN.pdf)
+---
 
-## 使用
+## 核心特性
 
-1. 将构建好的 `DockCounts.app` 放到固定位置（例如 `~/Applications`）后启动。
-2. 在“系统设置 → 隐私与安全性 → 辅助功能”中允许 DockCounts。首次启动的设置窗口提供入口。授权后若仍无法接管点击，退出并重新启动。重新构建或签名后，若设置中已开启但程序仍报告未授权，请移除旧 DockCounts 记录，再添加当前安装路径的应用。
-3. 在“系统设置 → 桌面与程序坞”开启“将窗口最小化至应用程序图标”。
-4. 从菜单栏的 DC 图标可暂停、打开设置或退出。
-5. 在设置中按需打开功能；“登录 Mac 时自动启动”默认关闭。若系统提示等待允许，使用旁边的入口进入系统登录项设置。恢复功能与外观默认设置不会改变系统登录项。
+- **精准左键窗口菜单**：左键点击 Dock 图标时直接弹出窗口选择菜单，解决多个窗口（含最小化窗口）缩进图标时原生左键行为模糊的问题。默认仅在**多窗口**时弹菜单，也可切换为**含单窗口**。
+- **前台单窗口点按即收起**：当单窗口应用处于前台且未最小化时，再次点击 Dock 图标直接将其最小化；再点即恢复，形成单手闭环（可在设置中单独开关）。
+- **高效的窗口清单交互**：自动按「当前主窗口 → 展开窗口 → 已最小化」排序展示；支持数字键 `1–9` 与方向键快速选择、鼠标悬停行内直接最小化/恢复或关闭窗口，以及头部一键「展开全部」。
+- **智能降噪 Dock 角标**：默认隐藏无干扰的单窗口正常状态；多窗口显示简洁圆角数字（如 `3`），含最小化窗口显示紧凑 `3↓1`。提供系统玻璃、柔和磨砂、高对比纯色、系统主题色四套精选风格及紧凑/标准两档尺寸。
+- **原生菜单栏与轻量架构**：采用系统原生 `.menu` 菜单栏样式；`CGEventTap` 回调仅做本地几何与 WindowServer 层级判定，不阻塞桌面输入；右键、修饰键点击与拖动（> 5 pt）保留系统原样。无屏幕采集、无网络请求、无遥测。
 
-角标贴合图标右下角，采用系统玻璃/磨砂材质与等宽数字，保留右上角通知角标的位置。第一项是总数（包含已最小化窗口），第二项以次要文字显示最小化数；会响应系统的减少透明度与增强对比度设置。不支持辅助功能的应用不显示推测的计数，保留原有点击行为。隐藏应用的窗口仍计入总数，窗口最小化与应用隐藏分别处理。
+## 下载与安装
 
-## 图标与系统材质
-
-菜单栏采用交错的衬线大写 DC，C 较小并位于右下方，使用单色模板自动适配系统明暗外观。
-
-应用图标沿用同一衬线 DC 字形，配青蓝、紫色与珊瑚色渐变。角标预览可在多彩、明亮、深色后景之间切换，方便对照材质与染色效果。
-
-完整图标源文件位于 `Artwork/`，打包资源位于 `Sources/DockCounts/Resources/`，包括多尺寸 ICNS、1024 px PNG 和单色菜单栏 PDF。安装 `librsvg` 后可用 `scripts/generate-icons.sh` 从 SVG 重新生成。
-
-macOS 26+ 使用 `NSGlassEffectView`：普通模式采用 regular；开启“减弱透明效果”时采用 clear 加中性遮蔽，在本机 macOS 27.2.1 的对照测试中仍有背景模糊。macOS 15 使用 `NSVisualEffectView` 的公开兼容路径，减弱透明效果下仍受旧系统材质策略约束。
-
-[0.3.0 改动与验证边界](docs/0.3.0-validation.md)
-
-[0.4.0 设置与验证记录](docs/0.4.0-validation.md)
-
-[0.4.2 多彩图标、后景预览与窗口限制](docs/0.4.2-validation.md)
+1. 前往 [GitHub Releases](https://github.com/whdichrn/DockCounts/releases) 下载最新通用版压缩包 `DockCounts-0.5.0-universal.zip`（支持 Apple Silicon 与 Intel）。
+2. 解压后将 `DockCounts.app` 拖入 `/Applications`（应用程序）目录并启动。
+3. 在 **系统设置 → 隐私与安全性 → 辅助功能** 中允许 `DockCounts`。
+   > **提示**：由于公开包使用 ad-hoc 签名，升级替换或重新构建后若系统仍提示未授权，请在辅助功能列表中移除旧记录后重新勾选当前 `/Applications/DockCounts.app`。
+4. 可按需在 **系统设置 → 桌面与程序坞** 中开启「将窗口最小化至应用程序图标」。
 
 ## 构建与测试
 
-需要 Xcode 16 或更新版本（Swift 6 工具链）。可直接用 Xcode 打开 `Package.swift` 查看、编辑和运行。
+环境要求：Xcode 16 或更新版本（Swift 6 工具链）。如需修改 SVG 后重新生成图标资源，请先安装 `librsvg`（`rsvg-convert`）。
 
 ```sh
+# 1. 运行单元测试（无需桌面交互权限）
 swift test
+
+# 2. 构建本机架构 .app
 scripts/build-app.sh
-open dist/DockCounts.app
-```
 
-默认构建本机架构。可构建 Apple Silicon + Intel 通用版本：
-
-```sh
+# 或构建 Apple Silicon + Intel 通用版本
 DOCKCOUNTS_UNIVERSAL=1 scripts/build-app.sh
+
+# 3. 从 Artwork/*.svg 重新生成图标与菜单栏 PDF 资源（需 librsvg）
+scripts/generate-icons.sh
 ```
 
-需要桌面会话和测试运行环境的辅助功能权限的真实窗口集成测试：
+需要真实桌面会话与辅助功能权限的集成测试（运行前请先退出已有 `DockCounts`）：
 
 ```sh
-scripts/test-live.sh
-# 包括 SwiftUI 菜单内容的桌面集成测试（先退出已有 DockCounts）
 DOCKCOUNTS_TEST_MENU=1 scripts/test-live.sh
-# 已安装版本的交互验收 fixture（结束后 Ctrl-C 清理）
-DOCKCOUNTS_INTERACTIVE=1 scripts/test-live.sh
 ```
 
-该脚本创建一个一次性应用，打开三个已命名窗口并最小化其中一个，验证真实窗口总数、最小化数、Dock 图标匹配，以及恢复窗口后的最小化、主窗口和前台应用状态。结束时退出并清理测试应用。请不要同时运行第二个测试 fixture。
+## 实现与权限边界
 
-调试包还提供 `--settings --smoke-menu io.github.whdichrn.DockCountsFixture` 的进程内回调测试入口：8 秒后，用真实 Dock 命中测试调用点击处理器并显示窗口菜单，不向桌面发送合成鼠标输入。菜单显示后可运行 `DOCKCOUNTS_MENU_TEST=1 swift test --filter LiveMenuTests` 检查实际菜单。该入口不编入 release 包。详细测试边界见 [测试记录](docs/TESTING.md)。
+- Apple 的 `NSDockTile` 仅适用于本应用自身图标，无法为其他应用写入角标；因此角标层使用忽略鼠标事件的透明 `NSPanel` 跟随辅助功能 API 暴露的 Dock 图标坐标。
+- 窗口清单读取自系统辅助功能树（`AXUIElement`），对跨 Space、全屏或特殊框架应用的窗口可见性取决于应用自身公开的辅助功能信息。
+- 本地构建与当前 release 包使用 ad-hoc 签名，未经过 Developer ID 公证。
 
-## 实现边界
+## License
 
-Apple 的 `NSDockTile` 用于本应用图标，不能为其他应用直接设置角标。因此本程序使用不接收鼠标事件的透明面板，跟随辅助功能 API 暴露的 Dock 图标位置，不修改 Dock 进程或其他应用。
-
-窗口清单来自应用公开的辅助功能树，统计标准窗口和对话框，不将标签页、浮动面板或独立 sheet 当作额外窗口。某些应用只暴露部分窗口，或在其他 Space / 全屏环境下提供不完整信息，计数以应用实际提供的信息为准。
-
-窗口状态约每 350 ms 轮询一次；读取失败时最多保留 2 秒的有效结果，真实零窗口立即生效。Dock 的边界约每 100 ms 检查，指针靠近、几何变化或桌面事件触发最高约 30 Hz 的短时跟踪，静止时复用图标几何。应用清单按启动/退出事件及低频校验更新，避免在动画循环中重复查询 Launch Services。点击时重新命中实际图标，避免依赖放大动画期间的旧坐标。Dock 隐藏或被遮住时隐藏角标，面板保持复用；明确离屏立即隐藏，短暂命中失败有不超过 140 ms 的容错。角标使用 stationary 窗口行为，避免被系统默认当作临时面板从窗口总览中移除。多屏坐标转换有单元测试；实体多显示器、所有 Dock 方向、快速放大动画、跨 Space 和所有第三方应用的兼容性仍需逐项人工验证。
-
-本地包使用 ad-hoc 签名，没有 Developer ID 公证。更换路径或重新签名后，系统可能要求重新授权辅助功能。源代码声明的最低系统版本和构建包均为 macOS 15；本机真实窗口测试系统见测试记录，不能将其视为所有 macOS 15+ 版本的实机兼容认证。
-
-参考：[NSDockTile](https://developer.apple.com/documentation/appkit/nsdocktile)、[AXUIElement](https://developer.apple.com/documentation/applicationservices/axuielement_h)、[CGEvent](https://developer.apple.com/documentation/coregraphics/cgevent)。
+基于 [MIT License](LICENSE) 开源。

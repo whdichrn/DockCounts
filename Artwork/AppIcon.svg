@@ -1,42 +1,95 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
- <defs>
-  <linearGradient id="base" x1="0" y1="0" x2=".8" y2="1">
-   <stop stop-color="#244BC1"/><stop offset=".5" stop-color="#5142AD"/><stop offset="1" stop-color="#592968"/>
-  </linearGradient>
-  <radialGradient id="teal" cx=".03" cy=".05" r=".9">
-   <stop stop-color="#29C6D1" stop-opacity=".92"/><stop offset="1" stop-color="#29C6D1" stop-opacity="0"/>
-  </radialGradient>
-  <radialGradient id="violet" cx="1" cy=".05" r=".85">
-   <stop stop-color="#9663EF" stop-opacity=".92"/><stop offset="1" stop-color="#9663EF" stop-opacity="0"/>
-  </radialGradient>
-  <radialGradient id="coral" cx="1" cy="1" r=".93">
-   <stop stop-color="#F38A66"/><stop offset=".4" stop-color="#E45683" stop-opacity=".85"/><stop offset="1" stop-color="#D34392" stop-opacity="0"/>
-  </radialGradient>
-  <radialGradient id="blue" cx="0" cy="1" r=".9">
-   <stop stop-color="#2D8CE2" stop-opacity=".9"/><stop offset="1" stop-color="#2D8CE2" stop-opacity="0"/>
-  </radialGradient>
-  <linearGradient id="edge" x1="0" y1="0" x2="0" y2="1">
-   <stop stop-color="#E5F1FF" stop-opacity=".48"/><stop offset=".55" stop-color="#C7DDF4" stop-opacity=".1"/><stop offset="1" stop-color="#071E37" stop-opacity=".38"/>
-  </linearGradient>
-  <linearGradient id="ivory" x1="0" y1="0" x2=".2" y2="1">
-   <stop stop-color="#FFFFFF"/><stop offset=".65" stop-color="#F2F4F6"/><stop offset="1" stop-color="#D6E2EF"/>
-  </linearGradient>
-  <filter id="tileShadow" x="-.2" y="-.2" width="1.4" height="1.5">
-   <feDropShadow dy="15" stdDeviation="13" flood-color="#0B1C30" flood-opacity=".24"/>
-  </filter>
-  <filter id="letterShadow" x="-.1" y="-.1" width="1.2" height="1.3">
-   <feDropShadow dx="0" dy=".15" stdDeviation=".10" flood-color="#081C32" flood-opacity=".32"/>
-  </filter>
- </defs>
- <!-- Same native-icon footprint and optical padding as the previous application icon. -->
- <rect x="104" y="104" width="816" height="816" rx="184" fill="url(#base)" filter="url(#tileShadow)"/>
- <rect x="104" y="104" width="816" height="816" rx="184" fill="url(#teal)"/>
- <rect x="104" y="104" width="816" height="816" rx="184" fill="url(#violet)"/>
- <rect x="104" y="104" width="816" height="816" rx="184" fill="url(#coral)"/>
- <rect x="104" y="104" width="816" height="816" rx="184" fill="url(#blue)"/>
- <rect x="106" y="106" width="812" height="812" rx="182" fill="none" stroke="url(#edge)" stroke-width="3"/>
- <!-- Approved serif DC monogram: C stays smaller and interlocks at the lower right. -->
- <g transform="translate(143.45 155.15) scale(39)" filter="url(#letterShadow)">
-  <path fill="url(#ivory)" fill-rule="evenodd" d="M2.299999952316284 2.5H6.800000190734863C9.818995475769043 2.5 11.802831649780273 3.732332706451416 12.716897010803223 5.8509087562561035Q11.654255867004395 5.915915489196777 10.819954872131348 6.368276119232178C10.22541618347168 4.341206073760986 8.825237274169922 3.25 6.600000381469727 3.25H5.700000286102295V14.75H6.600000381469727C7.643998146057129 14.75 8.506389617919922 14.509811401367188 9.189177513122559 14.0454740524292Q9.410178184509277 14.413897514343262 9.69637680053711 14.73466968536377Q9.792986869812012 14.842950820922852 9.894438743591309 14.942998886108398C9.026344299316406 15.307193756103516 7.9941511154174805 15.5 6.800000190734863 15.5H2.299999952316284V14.800000190734863H3.799999952316284V3.200000047683716H2.299999952316284ZM16.15999984741211 6.319999694824219 15.920000076293945 9.079999923706055H15.440000534057617C15.359999656677246 7.519999980926514 14.600000381469727 6.71999979019165 13.40000057220459 6.71999979019165C11.520000457763672 6.71999979019165 10.5600004196167 8.279999732971191 10.5600004196167 11.0C10.5600004196167 13.719999313354492 11.520000457763672 15.280000686645508 13.40000057220459 15.280000686645508C14.680000305175781 15.280000686645508 15.600000381469727 14.480000495910645 16.119998931884766 13.0L16.600000381469727 13.199999809265137C16.0 14.960000038146973 14.840001106262207 15.800000190734863 13.080000877380371 15.800000190734863C10.480000495910645 15.800000190734863 8.800000190734863 13.920000076293945 8.800000190734863 11.0C8.800000190734863 8.079999923706055 10.480000495910645 6.199999809265137 13.080000877380371 6.199999809265137C14.320000648498535 6.199999809265137 15.119999885559082 6.639999866485596 15.680001258850098 7.119999885559082L15.960000038146973 6.319999694824219ZM13.10960578918457 7.09428596496582C13.236371040344238 7.682861804962158 13.300000190734863 8.31973934173584 13.300000190734863 9.0C13.300000190734863 11.089229583740234 12.6998291015625 12.769251823425293 11.513731956481934 13.89758014678955Q10.95758056640625 12.98003101348877 10.922379493713379 11.239045143127441C11.074315071105957 10.578971862792969 11.15000057220459 9.8311128616333 11.15000057220459 9.0L11.149978637695312 8.976065635681152Q11.629621505737305 7.244584083557129 13.10960578918457 7.09428596496582Z"/>
- </g>
+  <defs>
+    <!-- Continuous macOS squircle path [100..924] -->
+    <path id="squircle" d="M 340 100 L 684 100 C 842 100, 924 182, 924 340 L 924 684 C 924 842, 842 924, 684 924 L 340 924 C 182 924, 100 842, 100 684 L 100 340 C 100 182, 182 100, 340 100 Z"/>
+
+    <clipPath id="clipSquircle">
+      <use href="#squircle"/>
+    </clipPath>
+
+    <linearGradient id="bgGrad" x1="0.1" y1="0" x2="0.9" y2="1">
+      <stop offset="0%" stop-color="#264775"/>
+      <stop offset="52%" stop-color="#192E52"/>
+      <stop offset="100%" stop-color="#0F1B33"/>
+    </linearGradient>
+
+    <radialGradient id="topGlow" cx="0.22" cy="0.14" r="0.72">
+      <stop offset="0%" stop-color="#56B4F9" stop-opacity="0.34"/>
+      <stop offset="65%" stop-color="#3E7FC9" stop-opacity="0.06"/>
+      <stop offset="100%" stop-color="#192E52" stop-opacity="0"/>
+    </radialGradient>
+
+    <linearGradient id="rimGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.34"/>
+      <stop offset="50%" stop-color="#B9D7FF" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#040B16" stop-opacity="0.40"/>
+    </linearGradient>
+
+    <linearGradient id="backWinGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#DCEBFF" stop-opacity="0.36"/>
+      <stop offset="100%" stop-color="#A8C6ED" stop-opacity="0.18"/>
+    </linearGradient>
+
+    <linearGradient id="frontWinGrad" x1="0" y1="0" x2="0.15" y2="1">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.97"/>
+      <stop offset="100%" stop-color="#E7EFFA" stop-opacity="0.92"/>
+    </linearGradient>
+
+    <linearGradient id="badgeGrad" x1="0.15" y1="0" x2="0.85" y2="1">
+      <stop offset="0%" stop-color="#FF9B42"/>
+      <stop offset="100%" stop-color="#E65728"/>
+    </linearGradient>
+
+    <filter id="tileShadow" x="-15%" y="-15%" width="130%" height="135%">
+      <feDropShadow dx="0" dy="16" stdDeviation="16" flood-color="#060D1A" flood-opacity="0.30"/>
+    </filter>
+
+    <filter id="cardShadow" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="14" stdDeviation="14" flood-color="#071224" flood-opacity="0.32"/>
+    </filter>
+
+    <filter id="badgeShadow" x="-25%" y="-25%" width="150%" height="160%">
+      <feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#0B1220" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <!-- Base squircle with soft drop shadow -->
+  <use href="#squircle" fill="url(#bgGrad)" filter="url(#tileShadow)"/>
+
+  <g clip-path="url(#clipSquircle)">
+    <rect x="100" y="100" width="824" height="824" fill="url(#topGlow)"/>
+
+    <!-- Subtle bottom Dock shelf -->
+    <rect x="196" y="688" width="632" height="110" rx="34" fill="#FFFFFF" fill-opacity="0.10" stroke="#FFFFFF" stroke-opacity="0.18" stroke-width="2"/>
+
+    <!-- Back stacked window -->
+    <rect x="236" y="218" width="448" height="352" rx="40" fill="url(#backWinGrad)" stroke="#FFFFFF" stroke-opacity="0.34" stroke-width="2.5"/>
+
+    <!-- Front crisp window -->
+    <g filter="url(#cardShadow)">
+      <rect x="304" y="294" width="464" height="368" rx="42" fill="url(#frontWinGrad)"/>
+      <rect x="304" y="294" width="464" height="368" rx="42" fill="none" stroke="#FFFFFF" stroke-opacity="0.85" stroke-width="2"/>
+      <!-- Window traffic light dots and title divider -->
+      <circle cx="352" cy="336" r="9.5" fill="#FF6B62" fill-opacity="0.88"/>
+      <circle cx="382" cy="336" r="9.5" fill="#FFB946" fill-opacity="0.88"/>
+      <circle cx="412" cy="336" r="9.5" fill="#46C96E" fill-opacity="0.88"/>
+      <line x1="336" y1="368" x2="736" y2="368" stroke="#1F3659" stroke-opacity="0.10" stroke-width="2.5"/>
+      <!-- Subtle content lines -->
+      <rect x="348" y="406" width="236" height="22" rx="11" fill="#233E68" fill-opacity="0.14"/>
+      <rect x="348" y="452" width="320" height="18" rx="9" fill="#233E68" fill-opacity="0.09"/>
+      <rect x="348" y="490" width="268" height="18" rx="9" fill="#233E68" fill-opacity="0.09"/>
+    </g>
+
+    <!-- Precision count badge in lower right -->
+    <g filter="url(#badgeShadow)">
+      <circle cx="728" cy="616" r="98" fill="url(#badgeGrad)"/>
+      <circle cx="728" cy="616" r="96" fill="none" stroke="#FFFFFF" stroke-opacity="0.45" stroke-width="3.5"/>
+      <!-- Crisp geometric numeral 3 -->
+      <path d="M 700 578 C 708 558, 754 558, 758 586 C 760 606, 742 615, 718 615 C 745 615, 762 626, 760 648 C 756 673, 706 673, 698 652"
+            fill="none" stroke="#FFFFFF" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+  </g>
+
+  <!-- Outer rim bevel -->
+  <use href="#squircle" fill="none" stroke="url(#rimGrad)" stroke-width="3"/>
 </svg>

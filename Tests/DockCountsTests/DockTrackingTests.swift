@@ -31,11 +31,11 @@ final class DockTrackingTests: XCTestCase {
         let dock = CGRect(x: 0, y: 50, width: 50, height: 600)
         XCTAssertTrue(motion.observe(entries: [initial], dockFrame: dock, at: start))
         XCTAssertEqual(motion.interval(pointer: far, entries: [initial], at: start), 1.0 / 30)
-        XCTAssertEqual(motion.interval(pointer: far, entries: [initial], at: start.addingTimeInterval(1)), 0.1)
+        XCTAssertEqual(motion.interval(pointer: far, entries: [initial], at: start.addingTimeInterval(1)), 0.25)
         XCTAssertTrue(motion.observe(entries: [moved], dockFrame: dock, at: start.addingTimeInterval(1.1)))
         XCTAssertEqual(motion.interval(pointer: far, entries: [moved], at: start.addingTimeInterval(1.2)), 1.0 / 30)
         XCTAssertFalse(motion.observe(entries: [moved], dockFrame: dock, at: start.addingTimeInterval(1.3)))
-        XCTAssertEqual(motion.interval(pointer: far, entries: [moved], at: start.addingTimeInterval(2)), 0.1)
+        XCTAssertEqual(motion.interval(pointer: far, entries: [moved], at: start.addingTimeInterval(2)), 0.25)
         motion.wake(at: start.addingTimeInterval(3))
         XCTAssertEqual(motion.interval(pointer: far, entries: [moved], at: start.addingTimeInterval(3.1)), 1.0 / 30)
     }
