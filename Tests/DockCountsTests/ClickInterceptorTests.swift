@@ -78,4 +78,30 @@ final class ClickInterceptorTests: XCTestCase {
         wait(for: [observed], timeout: 1)
     }
 
+    func testSingleWindowOptionPassesBothEventsToDockWithoutOpeningPicker() {
+        let interceptor = makeInterceptor(total: 1)
+        var preferences = AppPreferences(); preferences.selectSingleWindow = false
+        interceptor.shouldIntercept = { preferences.selectsWindow(total: $0.counts?.total ?? 0) }
+        XCTAssertNotNil(interceptor.handle(proxy, .leftMouseDown, event(.leftMouseDown)))
+        XCTAssertNotNil(interceptor.handle(proxy, .leftMouseUp, event(.leftMouseUp)))
+    }
+    func testDisablingPickerDoesNotConsumeClickEvenWhenBadgesRemainEnabled() {
+        let interceptor = makeInterceptor(total: 3)
+        var preferences = AppPreferences(); preferences.windowSelectionEnabled = false
+        XCTAssertTrue(preferences.badgesEnabled)
+        interceptor.shouldIntercept = { preferences.selectsWindow(total: $0.counts?.total ?? 0) }
+        XCTAssertNotNil(interceptor.handle(proxy, .leftMouseDown, event(.leftMouseDown)))
+        XCTAssertNotNil(interceptor.handle(proxy, .leftMouseUp, event(.leftMouseUp)))
+    }
+    func testMultiWindowPickerStillWorksWithSingleWindowOptionOffAndBadgesOff() {
+        let interceptor = makeInterceptor(total: 3)
+        var preferences = AppPreferences(); preferences.selectSingleWindow = false; preferences.badgesEnabled = false
+        interceptor.shouldIntercept = { preferences.selectsWindow(total: $0.counts?.total ?? 0) }
+        let opened = expectation(description: "multi-window selection")
+        interceptor.onClick = { _, _ in opened.fulfill() }
+        XCTAssertNil(interceptor.handle(proxy, .leftMouseDown, event(.leftMouseDown)))
+        XCTAssertNil(interceptor.handle(proxy, .leftMouseUp, event(.leftMouseUp)))
+        wait(for: [opened], timeout: 1)
+    }
+
 }

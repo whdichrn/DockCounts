@@ -10,6 +10,14 @@ struct DockCountsApp: App {
         } label: {
             Image(nsImage: AppArtwork.menuBarIcon).accessibilityLabel("DockCounts")
         }.menuBarExtraStyle(.window)
+        .commands {
+            CommandGroup(replacing: .appSettings) {
+                Button("设置…") { delegate.controller.showSettings() }.keyboardShortcut(",")
+            }
+            CommandGroup(replacing: .appInfo) {
+                Button("关于 DockCounts…", action: delegate.controller.showAbout)
+            }
+        }
     }
 }
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -23,58 +31,37 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             DispatchQueue.main.asyncAfter(deadline: .now() + 8) { self.controller.smokeClick(bundleID: bundleID) }
         }
         #endif
-        if !UserDefaults.standard.bool(forKey: "hasLaunched") || !controller.trusted || CommandLine.arguments.contains("--settings") {
+        if !UserDefaults.standard.bool(forKey: "hasLaunched") || (!controller.trusted && controller.preferences.needsDock) || CommandLine.arguments.contains("--settings") {
             UserDefaults.standard.set(true, forKey: "hasLaunched")
             controller.showSettings()
         }
+    }
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        controller.showSettings(); return true
     }
     func applicationWillTerminate(_ notification: Notification) { controller.stop() }
 }
 struct StatusView: View {
     @ObservedObject var controller: AppController
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 13) {
             HStack(spacing: 9) {
                 Image(nsImage: AppArtwork.appIcon).resizable().frame(width: 32, height: 32)
                 Text("DockCounts").font(.headline)
+                Spacer()
+                Text(ProjectLinks.version).font(.caption).foregroundStyle(.secondary)
             }
             Text(controller.message).font(.callout).foregroundStyle(.secondary)
-            Toggle("启用窗口计数与选择", isOn: $controller.enabled)
+            Toggle("启用 DockCounts", isOn: $controller.preferences.enabled)
+            Divider()
+            Toggle("显示窗口角标", isOn: $controller.preferences.badgesEnabled)
+            Toggle("启用窗口选择", isOn: $controller.preferences.windowSelectionEnabled)
             HStack {
-                Button("设置与权限…", action: controller.showSettings)
+                Button("设置…") { controller.showSettings() }
+                Button("关于…", action: controller.showAbout)
                 Spacer()
                 Button("退出") { NSApp.terminate(nil) }
             }
-        }.padding(18).frame(width: 320)
-    }
-}
-struct SettingsView: View {
-    @ObservedObject var controller: AppController
-    var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            HStack(spacing: 12) {
-                Image(nsImage: AppArtwork.appIcon).resizable().frame(width: 48, height: 48)
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("DockCounts").font(.title2.bold())
-                    Text("在 Dock 上看见窗口数量，点击选择窗口。") .foregroundStyle(.secondary)
-                }
-            }
-            Toggle("启用窗口计数与选择", isOn: $controller.enabled)
-            VStack(alignment: .leading, spacing: 12) {
-                Label(controller.trusted ? "辅助功能已授权" : "需要辅助功能权限", systemImage: controller.trusted ? "checkmark.circle.fill" : "lock.circle")
-                if !controller.trusted { Button("授权辅助功能…", action: controller.requestPermission) }
-                Label(controller.minimizeToApplication ? "已开启最小化至应用程序图标" : "请开启最小化至应用程序图标", systemImage: controller.minimizeToApplication ? "checkmark.circle.fill" : "circle")
-                if !controller.minimizeToApplication {
-                    Button("打开桌面与程序坞设置") { NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.Desktop-Settings.extension")!) }
-                }
-            }.font(.callout)
-            HStack(spacing: 10) {
-                CountBadge(counts: WindowCounts(minimized: 2, total: 5))
-                Text("窗口总数 · 已最小化数").font(.callout).foregroundStyle(.secondary)
-            }
-            Text("普通点击显示窗口列表；选择窗口即可恢复并切换。右键和修饰键点击保留系统行为。窗口数量取决于应用提供的辅助功能信息。")
-                .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
-            Text(controller.message).font(.caption).foregroundStyle(.secondary)
-        }.padding(26).frame(width: 440)
+        }.padding(18).frame(width: 330)
     }
 }

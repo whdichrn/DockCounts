@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the screenshot-based, two-page Chinese guide (reportlab + Pillow)."""
+"""Build the screenshot-based, four-page Chinese guide (reportlab + Pillow)."""
 from pathlib import Path
 from html import escape
 from reportlab.pdfgen import canvas
@@ -10,6 +10,7 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.utils import ImageReader
 from reportlab.platypus import Paragraph
+from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1]
 ASSETS = ROOT / 'docs/manual/screenshots'
@@ -33,6 +34,14 @@ c.setTitle(f'DockCounts {VERSION} 实机图解与简明手册')
 c.setAuthor('DockCounts')
 c.setSubject('真实安装版截图、窗口计数、窗口选择与安装说明')
 
+# Crops preserve the native pixels and remove unrelated remote-sharing chrome.
+DETAILS = ROOT / 'tmp/pdfs/manual-details'
+DETAILS.mkdir(parents=True, exist_ok=True)
+def detail(name, box):
+    destination = DETAILS / (Path(name).stem + '-' + '-'.join(map(str,box)) + '.png')
+    Image.open(ASSETS/name).crop(box).save(destination)
+    return destination
+
 def text(s,x,y,size=11,font='Guide',color=INK):
     c.setFont(font,size); c.setFillColor(color); c.drawString(x,y,s)
 
@@ -54,7 +63,7 @@ def photo(name,x,bottom,width):
 def footer(page):
     c.setStrokeColor(LINE); c.setLineWidth(.7); c.line(M,61,W-M,61)
     text('实机截图  2026-11-21  |  截图机 macOS 27.2.1',M,43,8.5,color=MUTED)
-    c.setFont('Guide',8.5); c.setFillColor(MUTED); c.drawRightString(W-M,43,f'{page} / 2')
+    c.setFont('Guide',8.5); c.setFillColor(MUTED); c.drawRightString(W-M,43,f'{page} / 4')
 
 def number(n,y):
     c.setFillColor(BLUE); c.circle(M+10,y+3,10,fill=1,stroke=0)
@@ -71,7 +80,7 @@ text('窗口总数 · 已最小化数',M+130,707,12,'GuideBold')
 text('总数包含已经最小化的窗口。',M+130,687,10.5,color=MUTED)
 text('01  点击图标，只看这个应用的窗口',M,646,15,'GuideBold')
 photo('02-window-menu.png',(W-480)/2,424,480)
-text('图 1  窗口列表样式沿用 0.2；本轮已回归验证相同界面。',M,404,9,color=MUTED)
+text('图 1  菜单局部沿用 0.2；0.4 已回归验证同一列表与恢复行为。',M,404,9,color=MUTED)
 para('菜单中只有窗口名称与最小化状态。示例应用有三个窗口，Beta 标为“已最小化”；选择它即可恢复并切换。',M,384,CW,11.2,18)
 text('02  角标会随状态更新',M,320,15,'GuideBold')
 photo('01-badge-before.png',M+24,228,108)
@@ -85,7 +94,7 @@ centered('选择 Beta',W/2,286,10.5,'GuideBold',BLUE)
 centered('恢复并切换窗口',W/2,244,10,color=MUTED)
 c.setFillColor(colors.HexColor('#F5F8FB')); c.roundRect(M,116,CW,61,8,fill=1,stroke=0)
 text('总窗口数仍为 3；已最小化数从 1 变为 0。',M+14,151,11.5,'GuideBold')
-text('图片为真实画面裁切，未重绘界面；使用专用测试窗口保护业务内容。',M+14,131,9.2,color=MUTED)
+text('计数与恢复窗口图沿用 0.3；新增设置实机截图见后两页。',M+14,131,9.2,color=MUTED)
 footer(1)
 c.showPage()
 
@@ -114,5 +123,35 @@ photo('05-menubar-icon.png',M+2,108,30)
 para('菜单栏的双窗口与 Dock 托盘图标：可暂停、打开设置或退出。',M+46,137,CW-46,10.5,16)
 para('本地签名，未做 Developer ID 公证。macOS 26+ 使用系统玻璃；macOS 15 沿用兼容磨砂，减弱透明效果由系统控制。',M,95,CW,8.8,13,color=MUTED)
 footer(2)
+c.showPage()
+
+text('按需开启，配置会保留',M,796,25,'GuideBold')
+text('通用 / 窗口选择 / 角标外观 / 关于',M,770,11,color=MUTED)
+text('总开关与开机启动',M,736,14,'GuideBold')
+photo(detail('09-general-settings.jpg',(64,140,1256,717)),(W-480)/2,485,480)
+para('总开关暂停整个工具，保留配置。登录 Mac 时自动启动由系统登记；本机已验证开启、重启应用读回和关闭，现保持关闭。',M,470,CW,10.8,17)
+text('窗口选择可以单独关闭',M,413,14,'GuideBold')
+photo(detail('10-window-settings.jpg',(64,192,1256,488)),(W-480)/2,275,480)
+para('上图将“只有一个窗口时也显示选择列表”关闭：单窗口保留 Dock 原有点击行为，多个窗口仍然打开列表。开启后，只有一个窗口也会显示选择列表。',M,259,CW,11.2,18)
+text('角标与窗口列表分别控制',M,184,12,'GuideBold')
+para('关闭角标，仍可使用窗口列表；关闭窗口选择，仍可显示角标。两项都关闭时停止相关跟踪。恢复默认设置不会改变系统登录项。',M,168,CW,10.8,17)
+text('项目主页与版本',M,107,12,'GuideBold')
+para('“关于”页可查看版本，并打开项目主页或版本下载页。',M,92,CW,10.8,17)
+footer(3)
+c.showPage()
+
+text('让角标融入你的 Dock',M,796,25,'GuideBold')
+text('默认中性细描边；可随时还原外观。以下为安装版实时预览裁切。',M,770,10.5,color=MUTED)
+variants=[('11-badge-settings.jpg','自适应'),('material-glass.jpg','柔和玻璃'),('material-clear.jpg','清透玻璃'),('material-frosted.jpg','哑光磨砂'),('12-custom-tint.jpg','纯色 + 自选色')]
+for index,(name,label) in enumerate(variants):
+    width=94; x=M+index*(CW-94)/4
+    photo(detail(name,(50,100,290,320)),x,657,width)
+    centered(label,x+width/2,641,9.3,color=MUTED)
+para('背景强度仅影响材质，数字保持清晰。关闭高光会使用哑光外观；系统原生玻璃的折射亮边由系统统一绘制。',M,619,CW,10.6,16)
+photo(detail('11-badge-settings.jpg',(64,643,1256,1470)),(W-440)/2,285,440)
+text('颜色：中性 / 系统主题色 / 自选颜色 / 无染色',M,267,11,'GuideBold')
+photo(detail('15-colors-settings.jpg',(64,980,1256,1432)),(W-440)/2,91,440)
+text('自选颜色支持系统色板或六位代码；向下滚动可见全部颜色设置。',M,76,9.4,color=MUTED)
+footer(4)
 c.save()
 print(OUTPUT)

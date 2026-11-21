@@ -3,6 +3,7 @@ import ApplicationServices
 
 final class ClickInterceptor {
     var entries: [DockEntry] = []
+    var shouldIntercept: (DockEntry) -> Bool = { ($0.counts?.total ?? 0) > 0 }
     var hitTest: (CGPoint, [DockEntry]) -> DockEntry? = { AX.clickedEntry(at: $0, entries: $1) }
     var replay: (CGEvent, CGEventTapProxy?) -> Void = { event, proxy in if let proxy { event.tapPostEvent(proxy) } }
     var onClick: ((DockEntry, CGPoint) -> Void)?
@@ -46,7 +47,7 @@ final class ClickInterceptor {
             let modifiers: CGEventFlags = [.maskCommand, .maskControl, .maskAlternate, .maskShift]
             guard event.flags.intersection(modifiers).isEmpty,
                   entries.contains(where: { $0.frame.insetBy(dx: -100, dy: -100).contains(event.location) }),
-                  let entry = hitTest(event.location, entries), let copy = event.copy() else { return Unmanaged.passUnretained(event) }
+                  let entry = hitTest(event.location, entries), shouldIntercept(entry), let copy = event.copy() else { return Unmanaged.passUnretained(event) }
             pending = (entry, copy)
             return nil
         }

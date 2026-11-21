@@ -1,8 +1,37 @@
-# DockCounts 0.3.0 实机图解
+# DockCounts 0.4.0 实机图解
 
-[下载两页 PDF 手册](https://github.com/whdichrn/DockCounts/releases/download/v0.3.0/DockCounts-0.3.0-Quick-Guide-zh-CN.pdf) · [下载软件通用版](https://github.com/whdichrn/DockCounts/releases/download/v0.3.0/DockCounts-0.3.0-universal.zip)
+[下载四页 PDF 手册](https://github.com/whdichrn/DockCounts/releases/download/v0.4.0/DockCounts-0.4.0-Quick-Guide-zh-CN.pdf) · [下载软件通用版](https://github.com/whdichrn/DockCounts/releases/download/v0.4.0/DockCounts-0.4.0-universal.zip)
 
-角标和恢复后的窗口截图来自本机运行的 **0.3.0 安装版**；窗口菜单样式未变，菜单局部图沿用 0.2 实机图，并使用 0.3 同一份源码的调试构建进行交互回归。以下实机图片使用专用测试应用和窗口，只裁切相关区域，没有重绘界面。截图机为 macOS 27.2.1，软件最低支持 macOS 15。
+新增设置截图来自本机运行的 **0.4.0 安装版**。下方计数、Dock 与恢复窗口局部沿用 0.3 实机图，窗口菜单局部沿用 0.2 实机图；本轮已重新验证真实窗口、菜单内容和恢复行为。图片只裁切相关区域，没有重绘界面。截图机为 macOS 27.2.1，软件最低支持 macOS 15。
+
+## 按需开启功能
+
+从菜单栏打开“设置…”，可看到通用、窗口选择、角标外观和关于四页。
+
+- **通用**：总开关暂停整个工具，保留各项配置；“登录 Mac 时自动启动”独立设置，真实状态由系统管理。
+- **窗口选择**：可单独关闭；“只有一个窗口时也显示选择列表”关闭后，单窗口点击使用 Dock 的原有行为，多个窗口仍可选择。
+- **角标外观**：可单独关闭角标，窗口列表继续工作；关闭功能时也能预览和调整外观。
+- **关于**：查看版本，打开项目主页或版本下载页。
+
+![通用设置实机画面](screenshots/09-general-settings.jpg)
+
+![窗口选择与单窗口选项](screenshots/10-window-settings.jpg)
+
+所有功能及外观设置即时保存，退出重开会恢复。开机启动默认关闭；恢复功能与外观默认设置不会改变系统登录项。
+
+## 调整角标外观
+
+默认使用中性染色和细描边，与 Dock 的系统材质协调。材质可选自适应、柔和玻璃、清透玻璃、哑光磨砂、纯色；自适应会响应系统“减弱透明效果”。
+
+![角标材质、透明度与层次设置](screenshots/11-badge-settings.jpg)
+
+“背景不透明度”只改变背景，数字保持清楚。可选择无描边、细线或轮廓，分别打开高光、附加阴影与鲜明显示。关闭高光后使用哑光外观，原生玻璃自身的折射亮边由系统统一绘制。
+
+染色可选中性、系统主题色、自选颜色或无染色；自选颜色支持系统色板或输入六位颜色代码，例如 `#E55A32`。染色强度独立可调，数字颜色支持自动、深色和浅色。向下滚动可看到全部颜色设置。
+
+![自选染色与颜色代码](screenshots/15-colors-settings.jpg)
+
+点击“还原外观”仅重置角标样式。关于页的项目主页仍是私有仓库，需要有访问权限的 GitHub 账户。
 
 ## 角标怎么看
 
@@ -55,7 +84,7 @@
 python3 scripts/build_manual.py
 ```
 
-输出为 `output/pdf/DockCounts-0.3.0-Quick-Guide-zh-CN.pdf`。PDF 使用截图目录中的原始局部图，并嵌入中文字体。
+输出为 `output/pdf/DockCounts-0.4.0-Quick-Guide-zh-CN.pdf`。PDF 使用截图目录中的原始局部图，并嵌入中文字体。
 
 ## 0.3.0 更新
 
@@ -63,4 +92,4 @@ python3 scripts/build_manual.py
 
 ![新版 App 图标](../../Sources/DockCounts/Resources/AppIcon.png)
 
-详细测试方式和已验证范围见 [验证记录](../0.3.0-validation.md)。
+详细测试方式和已验证范围见 [0.4.0 验证记录](../0.4.0-validation.md)。

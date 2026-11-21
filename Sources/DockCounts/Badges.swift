@@ -37,21 +37,40 @@ enum BadgePlacement {
 struct CountBadge: View {
     let counts: WindowCounts
     var metrics: BadgeMetrics? = nil
+    var appearance = BadgeAppearance()
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @Environment(\.colorSchemeContrast) private var contrast
+    @Environment(\.colorScheme) private var scheme
+    private var supportsGlass: Bool {
+        #if compiler(>=6.2)
+        if #available(macOS 26, *) { return true }
+        #endif
+        return false
+    }
     var body: some View {
         let m = metrics ?? .make(counts: counts, tileSide: 32, scale: 2)
-        let ink: Color = contrast == .increased ? .primary : .secondary
-        (Text("\(counts.total)").foregroundColor(.primary)
+        let light = appearance.usesLightText(reduceTransparency: reduceTransparency, supportsGlass: supportsGlass, darkAppearance: scheme == .dark)
+        let primary: Color = light ? .white : .black
+        let ink = primary.opacity(contrast == .increased || appearance.vivid ? 1 : 0.70)
+        (Text("\(counts.total)").foregroundColor(primary)
          + Text("·").foregroundColor(ink.opacity(0.75))
          + Text("\(counts.minimized)").foregroundColor(ink))
         .font(.system(size: m.fontSize, weight: .medium)).monospacedDigit()
         .lineLimit(1).minimumScaleFactor(0.55)
         .padding(.horizontal, 2.5)
         .frame(width: m.contentSize.width, height: m.contentSize.height)
-        .background(BadgeMaterial(reduceTransparency: reduceTransparency))
-        .overlay(Capsule().strokeBorder(.primary.opacity(contrast == .increased ? 0.35 : (reduceTransparency ? 0.18 : 0.12)), lineWidth: 1 / m.scale))
-        .shadow(color: .black.opacity(0.10), radius: 0.6, y: 0.3)
+        .background(BadgeMaterial(appearance: appearance, reduceTransparency: reduceTransparency))
+        .overlay {
+            if appearance.edge != .none {
+                Capsule().strokeBorder(primary.opacity(contrast == .increased || appearance.vivid ? 0.40 : 0.18), lineWidth: appearance.edge == .outline ? 1.25 : 1 / m.scale)
+            }
+        }
+        .overlay {
+            if appearance.highlights && appearance.surface != .solid {
+                Capsule().strokeBorder(LinearGradient(colors: [.white.opacity(appearance.vivid ? 0.65 : 0.35), .white.opacity(0.02)], startPoint: .top, endPoint: .bottom), lineWidth: 1 / m.scale)
+            }
+        }
+        .shadow(color: .black.opacity(appearance.shadow ? 0.12 : 0), radius: 0.7, y: 0.3)
         .padding(1)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("共 \(counts.total) 个窗口，已最小化 \(counts.minimized) 个")
@@ -62,56 +81,87 @@ struct CountBadge: View {
 /// The accessibility setting changes the system's material recipe; we do not
 /// replace the backdrop with an opaque SwiftUI rectangle.
 struct BadgeMaterial: NSViewRepresentable {
+    let appearance: BadgeAppearance
     let reduceTransparency: Bool
-    func makeNSView(context: Context) -> NSView {
-        #if compiler(>=6.2)
-        if #available(macOS 26, *) {
-            let view = CapsuleGlassView()
-            view.configure(reduced: reduceTransparency)
-            return view
-        }
-        #endif
-        return CapsuleBackdropView()
-    }
-    func updateNSView(_ view: NSView, context: Context) {
-        #if compiler(>=6.2)
-        if #available(macOS 26, *), let glass = view as? CapsuleGlassView { glass.configure(reduced: reduceTransparency) }
-        #endif
-        view.needsLayout = true
+    @Environment(\.colorScheme) private var scheme
+    func makeNSView(context: Context) -> BadgeBackdropView { BadgeBackdropView() }
+    func updateNSView(_ view: BadgeBackdropView, context: Context) {
+        // Reading the appearance ensures dynamic system/accent colors are resolved
+        // again when the host changes between light and dark mode.
+        _ = scheme
+        view.configure(appearance: appearance, reduced: reduceTransparency)
     }
 }
 
-#if compiler(>=6.2)
-@available(macOS 26, *)
-private final class CapsuleGlassView: NSGlassEffectView {
-    override init(frame: NSRect) { super.init(frame: frame); style = .regular }
-    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
-    func configure(reduced: Bool) {
-        // Clear glass retains a blurred backdrop under Reduce Transparency on
-        // current macOS. A neutral scrim restores text contrast without flattening it.
-        style = reduced ? .clear : .regular
-        tintColor = reduced ? NSColor.windowBackgroundColor.withAlphaComponent(0.55) : nil
-    }
-    override func layout() { super.layout(); cornerRadius = bounds.height / 2 }
-}
-#endif
-
-private final class CapsuleBackdropView: NSVisualEffectView {
+final class BadgeBackdropView: NSView {
+    private var backing: NSView?
+    private var kind: BadgeSurface?
+    private let tint = NSView()
     override init(frame: NSRect) {
         super.init(frame: frame)
-        material = .hudWindow; blendingMode = .behindWindow; state = .active
         wantsLayer = true; layer?.masksToBounds = true
+        tint.wantsLayer = true
     }
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
-    override func layout() { super.layout(); layer?.cornerRadius = bounds.height / 2 }
+    func configure(appearance: BadgeAppearance, reduced: Bool) {
+        var supportsGlass = false
+        #if compiler(>=6.2)
+        if #available(macOS 26, *) { supportsGlass = true }
+        #endif
+        let resolved = appearance.resolvedSurface(reduceTransparency: reduced, supportsGlass: supportsGlass)
+        if kind != resolved {
+            backing?.removeFromSuperview(); tint.removeFromSuperview()
+            let view: NSView
+            #if compiler(>=6.2)
+            if #available(macOS 26, *), resolved == .glass || resolved == .clear {
+                let glass = NSGlassEffectView()
+                glass.style = resolved == .clear ? .clear : .regular
+                view = glass
+            } else { view = makeFallback(resolved) }
+            #else
+            view = makeFallback(resolved)
+            #endif
+            backing = view; kind = resolved
+            addSubview(view); addSubview(tint)
+        }
+        alphaValue = appearance.backgroundOpacity
+        isHidden = appearance.backgroundOpacity <= 0.001
+        let color = appearance.tintColor()
+        let strength = appearance.effectiveTintStrength(reduceTransparency: reduced)
+        tint.layer?.backgroundColor = nil
+        #if compiler(>=6.2)
+        if #available(macOS 26, *), let glass = backing as? NSGlassEffectView {
+            glass.tintColor = color?.withAlphaComponent(strength)
+        } else { tint.layer?.backgroundColor = color?.withAlphaComponent(strength).cgColor }
+        #else
+        tint.layer?.backgroundColor = color?.withAlphaComponent(strength).cgColor
+        #endif
+        if let effect = backing as? NSVisualEffectView { effect.isEmphasized = appearance.vivid }
+        if resolved == .solid { backing?.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor }
+        needsLayout = true
+    }
+    private func makeFallback(_ surface: BadgeSurface) -> NSView {
+        if surface == .solid { let view = NSView(); view.wantsLayer = true; return view }
+        let view = NSVisualEffectView()
+        view.material = .hudWindow; view.blendingMode = .behindWindow; view.state = .active
+        return view
+    }
+    override func layout() {
+        super.layout()
+        layer?.cornerRadius = bounds.height / 2
+        backing?.frame = bounds; tint.frame = bounds
+        #if compiler(>=6.2)
+        if #available(macOS 26, *), let glass = backing as? NSGlassEffectView { glass.cornerRadius = bounds.height / 2 }
+        #endif
+    }
 }
 
 final class BadgeController {
     private var panels: [pid_t: NSPanel] = [:]
     private var previous: [pid_t: Presentation] = [:]
-    private struct Presentation: Equatable { let counts: WindowCounts; let metrics: BadgeMetrics }
+    private struct Presentation: Equatable { let counts: WindowCounts; let metrics: BadgeMetrics; let appearance: BadgeAppearance }
     static let collectionBehavior: NSWindow.CollectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary, .ignoresCycle]
-    func update(_ entries: [DockEntry], visible: Bool, runningPIDs: Set<pid_t>) {
+    func update(_ entries: [DockEntry], visible: Bool, runningPIDs: Set<pid_t>, appearance: BadgeAppearance = BadgeAppearance()) {
         let primaryHeight = NSScreen.screens.first?.frame.height ?? 0
         let screens = NSScreen.screens
         var displayed = Set<pid_t>()
@@ -122,7 +172,7 @@ final class BadgeController {
             let screen = screens.first { $0.frame.intersects(tile) } ?? screens.first
             let scale = screen?.backingScaleFactor ?? 2
             let metrics = BadgeMetrics.make(counts: counts, tileSide: min(tile.width, tile.height), scale: scale)
-            let presentation = Presentation(counts: counts, metrics: metrics)
+            let presentation = Presentation(counts: counts, metrics: metrics, appearance: appearance)
             let panel: NSPanel
             if let old = panels[entry.pid] { panel = old } else {
                 panel = NSPanel(contentRect: .zero, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
@@ -136,7 +186,7 @@ final class BadgeController {
                 DockTrace.event("panel.create pid=\(entry.pid) number=\(panel.windowNumber)")
             }
             if previous[entry.pid] != presentation {
-                let view = CountBadge(counts: counts, metrics: metrics)
+                let view = CountBadge(counts: counts, metrics: metrics, appearance: appearance)
                 if let host = panel.contentView as? NSHostingView<CountBadge> { host.rootView = view }
                 else { panel.contentView = NSHostingView(rootView: view) }
                 previous[entry.pid] = presentation

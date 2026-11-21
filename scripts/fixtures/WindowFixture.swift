@@ -2,7 +2,8 @@ import AppKit
 let app = NSApplication.shared
 app.setActivationPolicy(.regular)
 var windows: [NSWindow] = []
-for (index, title) in ["DockCounts Test Alpha", "DockCounts Test Beta", "DockCounts Test Gamma"].enumerated() {
+let titles = CommandLine.arguments.contains("--single-window") ? ["DockCounts Test Alpha"] : ["DockCounts Test Alpha", "DockCounts Test Beta", "DockCounts Test Gamma"]
+for (index, title) in titles.enumerated() {
     let window = NSWindow(contentRect: NSRect(x: 240 + index * 40, y: 260 + index * 35, width: 430, height: 220), styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
     window.title = title
     window.isReleasedWhenClosed = false
@@ -32,5 +33,5 @@ if CommandLine.arguments.contains("--dock-click-surface"), let screen = NSScreen
     inputSurface = surface
 }
 app.activate()
-DispatchQueue.main.asyncAfter(deadline: .now() + 1) { windows[1].miniaturize(nil) }
+if windows.count > 1 { DispatchQueue.main.asyncAfter(deadline: .now() + 1) { windows[1].miniaturize(nil) } }
 app.run()

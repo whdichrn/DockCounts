@@ -3,9 +3,25 @@ import SwiftUI
 import ApplicationServices
 
 final class AppController: NSObject, ObservableObject {
-    @Published var enabled = UserDefaults.standard.object(forKey: "enabled") as? Bool ?? true {
-        didSet { UserDefaults.standard.set(enabled, forKey: "enabled"); refresh() }
+    private let store: PreferencesStore
+    let login: LoginItemController
+    @Published var preferences: AppPreferences {
+        didSet {
+            store.save(preferences)
+            if !preferences.enabled || !preferences.windowSelectionEnabled {
+                picker.dismiss(notify: false); menuOpen = false
+                clicks.stop(); intercepting = false
+            }
+            if oldValue.selectSingleWindow != preferences.selectSingleWindow {
+                picker.dismiss(notify: false); menuOpen = false
+            }
+            renderCurrentState()
+            if oldValue.enabled != preferences.enabled || oldValue.badgesEnabled != preferences.badgesEnabled || oldValue.windowSelectionEnabled != preferences.windowSelectionEnabled {
+                refresh(force: true)
+            }
+        }
     }
+    @Published var settingsTab: SettingsTab = .general
     @Published var trusted = false
     @Published var minimizeToApplication = false
     @Published var intercepting = false
@@ -39,8 +55,13 @@ final class AppController: NSObject, ObservableObject {
     private let picker = WindowPickerController()
     private var menuOpen = false
     private var dockDefaults: UserDefaults? { UserDefaults(suiteName: "com.apple.dock") }
-    override init() {
+    init(store: PreferencesStore = PreferencesStore(), login: LoginItemController = LoginItemController()) {
+        self.store = store; self.login = login; preferences = store.load()
         super.init()
+        clicks.shouldIntercept = { [weak self] entry in
+            guard let self else { return false }
+            return self.trusted && self.minimizeToApplication && self.preferences.selectsWindow(total: entry.counts?.total ?? 0)
+        }
         clicks.onClick = { [weak self] entry, point in self?.showWindows(entry, at: point) }
         clicks.onPointerDown = { [weak self] point in self?.picker.dismissIfOutside(at: point) }
         picker.onDismiss = { [weak self] in
@@ -57,17 +78,19 @@ final class AppController: NSObject, ObservableObject {
             self.nextInventoryPoll = .distantPast
         }
         events.onApplicationsChange = { [weak self] in self?.nextApplicationsPoll = .distantPast }
-        events.start()
         refresh()
         timer = Timer(timeInterval: 1.0 / 30.0, repeats: true) { [weak self] _ in self?.refresh() }
         RunLoop.main.add(timer!, forMode: .common)
     }
-    func showSettings() {
+    func showSettings(tab: SettingsTab? = nil) {
+        if let tab { settingsTab = tab }
+        login.refresh()
         if settingsWindow == nil {
-            let window = NSWindow(contentRect: NSRect(x: 100, y: 260, width: 492, height: 390), styleMask: [.titled, .closable], backing: .buffered, defer: false)
+            let window = NSWindow(contentRect: NSRect(x: 100, y: 260, width: 660, height: 680), styleMask: [.titled, .closable, .resizable, .miniaturizable], backing: .buffered, defer: false)
             window.title = "DockCounts"
             window.isReleasedWhenClosed = false
             window.contentView = NSHostingView(rootView: SettingsView(controller: self))
+            window.minSize = NSSize(width: 590, height: 560)
             window.center()
             settingsWindow = window
         }
@@ -111,10 +134,11 @@ final class AppController: NSObject, ObservableObject {
             let compact = dockDefaults?.bool(forKey: "minimize-to-application") ?? false
             if trusted != access { trusted = access }
             if minimizeToApplication != compact { minimizeToApplication = compact }
-            events.reconnect()
+            login.refresh()
             nextPermissionPoll = now.addingTimeInterval(1)
         }
-        guard enabled && trusted && minimizeToApplication else {
+        guard preferences.needsDock && trusted && minimizeToApplication else {
+            events.stop()
             if servicesActive {
                 generation += 1; inventoryRevision += 1; servicesActive = false
                 picker.dismiss(notify: false); menuOpen = false
@@ -122,12 +146,15 @@ final class AppController: NSObject, ObservableObject {
                 dockEntries = []; windowCache.reset(); visibility.reset()
                 nextGeometryPoll = .distantPast; nextInventoryPoll = .distantPast; lastSnapshot = nil
             }
-            setMessage(!enabled ? "已暂停" : !trusted ? "需要辅助功能权限" : "请先开启“将窗口最小化至应用程序图标”")
+            setMessage(!preferences.enabled ? "已暂停" : !preferences.needsDock ? "角标与窗口选择均已关闭" : !trusted ? "需要辅助功能权限" : "请先开启“将窗口最小化至应用程序图标”")
             return
         }
-        if !servicesActive { servicesActive = true }
-        if !intercepting && (checkPermissions || force) { intercepting = clicks.start() }
-        setMessage(intercepting ? "运行中 · 点击 Dock 图标选择窗口" : "无法接管点击，请在授权后重新启动")
+        if !servicesActive { servicesActive = true; events.start() }
+        if checkPermissions { events.reconnect() }
+        if preferences.windowSelectionEnabled {
+            if !intercepting && (checkPermissions || force) { intercepting = clicks.start() }
+        } else if intercepting { clicks.stop(); intercepting = false }
+        setMessage(preferences.windowSelectionEnabled && !intercepting ? "无法接管点击，请在授权后重新启动" : preferences.windowSelectionEnabled ? (preferences.badgesEnabled ? "运行中 · 角标与窗口选择" : "运行中 · 仅窗口选择") : "运行中 · 仅显示角标")
         let token = generation
         let point = NSEvent.mouseLocation
         let pointer = CGPoint(x: point.x, y: (NSScreen.screens.first?.frame.height ?? 0) - point.y)
@@ -179,8 +206,7 @@ final class AppController: NSObject, ObservableObject {
                         DockTrace.event("dock.phase \(self.phase.rawValue)->\(nextPhase.rawValue) visible=\(visible) entries=\(self.dockEntries.count)")
                         self.phase = nextPhase
                     }
-                    self.clicks.entries = self.menuOpen || !visible ? [] : self.dockEntries
-                    self.badges.update(self.dockEntries, visible: visible, runningPIDs: self.runningPIDs)
+                    self.renderCurrentState()
                     self.refresh()
                 }
             }
@@ -203,15 +229,29 @@ final class AppController: NSObject, ObservableObject {
                     self.dockEntries = self.dockEntries.map { entry in
                         DockEntry(pid: entry.pid, name: entry.name, url: entry.url, frame: entry.frame, windows: self.windowCache.windows(pid: entry.pid, at: finished))
                     }
-                    self.clicks.entries = self.menuOpen || !self.visibility.isVisible ? [] : self.dockEntries
-                    self.badges.update(self.dockEntries, visible: self.visibility.isVisible, runningPIDs: self.runningPIDs)
+                    self.renderCurrentState()
                 }
             }
         }
     }
+    private func renderCurrentState() {
+        let active = servicesActive && preferences.needsDock && trusted && minimizeToApplication
+        clicks.entries = active && preferences.windowSelectionEnabled && !menuOpen && visibility.isVisible ? dockEntries : []
+        if active && preferences.badgesEnabled {
+            badges.update(dockEntries, visible: visibility.isVisible, runningPIDs: runningPIDs, appearance: preferences.appearance)
+        } else { badges.hide() }
+    }
+    func showAbout() { showSettings(tab: .about) }
+    func restoreDefaults() { preferences = AppPreferences() }
     private func setMessage(_ value: String) { if message != value { message = value } }
     func showWindows(_ entry: DockEntry, at point: CGPoint) {
-        guard !menuOpen else { return }
+        guard !menuOpen, preferences.enabled, preferences.windowSelectionEnabled else { return }
+        let windows = AX.windows(pid: entry.pid) ?? entry.windows ?? []
+        if windows.count == 1 && !preferences.selectSingleWindow {
+            _ = WindowActivator.activate(pid: entry.pid, window: windows[0])
+            refresh(force: true)
+            return
+        }
         clicks.entries = []
         menuOpen = true
         picker.onChoose = { [weak self] window in
@@ -228,6 +268,6 @@ final class AppController: NSObject, ObservableObject {
             self.inventoryRevision += 1
             self.nextInventoryPoll = .distantPast
         }
-        picker.present(name: entry.name, windows: AX.windows(pid: entry.pid) ?? [], icon: entry.frame, at: point)
+        picker.present(name: entry.name, windows: windows, icon: entry.frame, at: point)
     }
 }
