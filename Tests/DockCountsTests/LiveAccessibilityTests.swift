@@ -70,7 +70,7 @@ final class LiveAccessibilityTests: XCTestCase {
         XCTAssertNotNil(AX.clickedEntry(at: CGPoint(x: badgeFrame.midX, y: badgeFrame.midY), entries: [entry]), "The rendered badge must pass clicks through to the application icon")
         let rendered = labels(badge)
         XCTAssertTrue(rendered.contains("共 3 个窗口，已最小化 \(expected) 个") || (rendered.contains("3") && rendered.contains("\(expected)")), "Actual badge text: \(rendered)")
-        print("INSTALLED BADGE:", rendered)
+        print("INSTALLED BADGE:", rendered, "frame:", badgeFrame, "tile:", entry.frame)
     }
 
     func testNativeWindowSelectionResult() throws {

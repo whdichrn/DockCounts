@@ -3,7 +3,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 configuration="${1:-release}"
 version="$(cat VERSION)"
-build_number="${DOCKCOUNTS_BUILD_NUMBER:-2}"
+build_number="${DOCKCOUNTS_BUILD_NUMBER:-3}"
 build_flags=(-c "$configuration")
 if [[ "${DOCKCOUNTS_UNIVERSAL:-0}" == "1" ]]; then
     build_flags+=(--arch arm64 --arch x86_64)
@@ -11,7 +11,8 @@ fi
 swift build "${build_flags[@]}"
 bin_dir="$(swift build "${build_flags[@]}" --show-bin-path)"
 app="dist/DockCounts.app"
-mkdir -p "$app/Contents/MacOS"
+mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
+cp Sources/DockCounts/Resources/* "$app/Contents/Resources/"
 cp "$bin_dir/DockCounts" "$app/Contents/MacOS/DockCounts"
 cat > "$app/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
@@ -20,6 +21,7 @@ cat > "$app/Contents/Info.plist" <<PLIST
 <key>CFBundleExecutable</key><string>DockCounts</string>
 <key>CFBundleIdentifier</key><string>io.github.whdichrn.DockCounts</string>
 <key>CFBundleName</key><string>DockCounts</string>
+<key>CFBundleIconFile</key><string>DockCounts</string>
 <key>CFBundlePackageType</key><string>APPL</string>
 <key>CFBundleShortVersionString</key><string>$version</string>
 <key>CFBundleVersion</key><string>$build_number</string>

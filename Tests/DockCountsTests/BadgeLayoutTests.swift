@@ -24,9 +24,9 @@ final class BadgeLayoutTests: XCTestCase {
         XCTAssertEqual(frame.minX * 2, (frame.minX * 2).rounded())
         XCTAssertEqual(frame.minY * 2, (frame.minY * 2).rounded())
     }
-    func testGeometryTracksQuicklyOnlyNearDock() {
+    func testGeometryHasADistantPointerFallbackForDesktopChanges() {
         let tile = CGRect(x: -50, y: 200, width: 40, height: 40)
         XCTAssertEqual(DockRefreshPolicy.geometryInterval(pointer: CGPoint(x: -20, y: 220), tiles: [tile]), 1.0 / 30.0)
-        XCTAssertEqual(DockRefreshPolicy.geometryInterval(pointer: CGPoint(x: 700, y: 400), tiles: [tile]), 0.35)
+        XCTAssertEqual(DockRefreshPolicy.geometryInterval(pointer: CGPoint(x: 700, y: 400), tiles: [tile]), 0.1)
     }
 }

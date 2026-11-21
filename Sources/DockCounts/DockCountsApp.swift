@@ -5,8 +5,10 @@ import AppKit
 struct DockCountsApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var delegate
     var body: some Scene {
-        MenuBarExtra("DockCounts", systemImage: "rectangle.stack.badge.plus") {
+        MenuBarExtra {
             StatusView(controller: delegate.controller)
+        } label: {
+            Image(nsImage: AppArtwork.menuBarIcon).accessibilityLabel("DockCounts")
         }.menuBarExtraStyle(.window)
     }
 }
@@ -32,7 +34,10 @@ struct StatusView: View {
     @ObservedObject var controller: AppController
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Label("DockCounts", systemImage: "rectangle.stack").font(.headline)
+            HStack(spacing: 9) {
+                Image(nsImage: AppArtwork.appIcon).resizable().frame(width: 32, height: 32)
+                Text("DockCounts").font(.headline)
+            }
             Text(controller.message).font(.callout).foregroundStyle(.secondary)
             Toggle("启用窗口计数与选择", isOn: $controller.enabled)
             HStack {
@@ -48,7 +53,7 @@ struct SettingsView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
             HStack(spacing: 12) {
-                Image(systemName: "rectangle.stack.badge.plus").font(.system(size: 34)).foregroundStyle(.blue)
+                Image(nsImage: AppArtwork.appIcon).resizable().frame(width: 48, height: 48)
                 VStack(alignment: .leading, spacing: 4) {
                     Text("DockCounts").font(.title2.bold())
                     Text("在 Dock 上看见窗口数量，点击选择窗口。") .foregroundStyle(.secondary)

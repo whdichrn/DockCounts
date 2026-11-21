@@ -29,7 +29,7 @@ enum Geometry {
 }
 enum DockRefreshPolicy {
     static func geometryInterval(pointer: CGPoint, tiles: [CGRect]) -> TimeInterval {
-        tiles.contains { $0.insetBy(dx: -70, dy: -70).contains(pointer) } ? 1.0 / 30.0 : 0.35
+        tiles.contains { $0.insetBy(dx: -70, dy: -70).contains(pointer) } ? 1.0 / 30.0 : 0.1
     }
 }
 
@@ -58,34 +58,78 @@ enum AX {
             WindowRecord(element: element, title: string(element, kAXTitleAttribute).flatMap { $0.isEmpty ? nil : $0 } ?? "未命名窗口", minimized: value(element, kAXMinimizedAttribute) as? Bool ?? false)
         }
     }
-    static func dockEntries(applications: [URL: pid_t], windowProvider: (pid_t) -> [WindowRecord]? = { AX.windows(pid: $0) }) -> [DockEntry] {
-        guard let dock = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.dock").first else { return [] }
-        let root = AXUIElementCreateApplication(dock.processIdentifier)
-        AXUIElementSetMessagingTimeout(root, 0.08)
-        let items = children(root).flatMap(children)
-        return items.compactMap { item in
+    struct DockSnapshot {
+        let pid: pid_t
+        let frame: CGRect
+        let entries: [DockEntry]
+        let itemCount: Int
+        let anchorFrames: [CGRect?]
+    }
+    static func dockSnapshot(applications: [URL: pid_t], dockPID: pid_t? = nil, previous: DockSnapshot? = nil, refreshItems: Bool = true, windowProvider: (pid_t) -> [WindowRecord]? = { AX.windows(pid: $0) }) -> DockSnapshot? {
+        guard let pid = dockPID ?? NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.dock").first?.processIdentifier else { return nil }
+        let root = AXUIElementCreateApplication(pid)
+        AXUIElementSetMessagingTimeout(root, 0.04)
+        guard let roots = value(root, kAXChildrenAttribute) as? [AXUIElement],
+              let list = roots.first(where: { string($0, kAXRoleAttribute) == kAXListRole }),
+              let frame = frame(list),
+              let items = value(list, kAXChildrenAttribute) as? [AXUIElement] else { return nil }
+        // Probe both Dock bounds and icon anchors: Show Desktop can move items
+        // within an unchanged list. A distant pointer must not delay this change
+        // until the slower full inventory refresh.
+        let anchorFrames = items.isEmpty ? [] : Set([0, items.count / 2, items.count - 1]).sorted().map { self.frame(items[$0]) }
+        if !refreshItems, let previous, previous.pid == pid,
+           previous.frame == frame, previous.itemCount == items.count, previous.anchorFrames == anchorFrames {
+            return previous
+        }
+        let entries: [DockEntry] = items.compactMap { item in
             guard string(item, kAXSubroleAttribute) == "AXApplicationDockItem", let url = value(item, kAXURLAttribute) as? URL,
-                  let pid = applications[url.standardizedFileURL], let frame = frame(item) else { return nil }
+                  let pid = applications[url.standardizedFileURL], let frame = self.frame(item) else { return nil }
             return DockEntry(pid: pid, name: string(item, kAXTitleAttribute) ?? "应用", url: url.standardizedFileURL, frame: frame, windows: windowProvider(pid))
         }
+        return DockSnapshot(pid: pid, frame: frame, entries: entries, itemCount: items.count, anchorFrames: anchorFrames)
     }
-    static func dockItem(at point: CGPoint) -> AXUIElement? {
+    static func dockEntries(applications: [URL: pid_t], windowProvider: (pid_t) -> [WindowRecord]? = { AX.windows(pid: $0) }) -> [DockEntry] {
+        dockSnapshot(applications: applications, windowProvider: windowProvider)?.entries ?? []
+    }
+    static func dockEvidence(_ snapshot: DockSnapshot, screenFrames: [CGRect]) -> DockEvidence {
+        guard snapshot.frame.width.isFinite, snapshot.frame.height.isFinite,
+              snapshot.frame.width > 1, snapshot.frame.height > 1 else { return .unknown }
+        // Require only an intersection: the visible part of a sliding Dock should
+        // not cross the former arbitrary 70% threshold and pop counters in/out.
+        guard screenFrames.contains(where: { $0.intersection(snapshot.frame).width > 2 && $0.intersection(snapshot.frame).height > 2 }) else { return .hidden }
+        let candidates = snapshot.entries.filter { entry in
+            screenFrames.contains { $0.contains(CGPoint(x: entry.frame.midX, y: entry.frame.midY)) }
+        }
+        guard !candidates.isEmpty else { return .unknown }
+        let indices = Set([0, candidates.count / 2, candidates.count - 1])
+        for index in indices {
+            let frame = candidates[index].frame
+            // Mission Control may expose a Dock-owned container rather than the
+            // icon leaf. Ownership is sufficient for visibility, while click
+            // interception below still requires a real application Dock item.
+            if dockItem(at: CGPoint(x: frame.midX, y: frame.midY), expectedDockPID: snapshot.pid) != nil { return .visible }
+        }
+        return .unknown
+    }
+    static func dockItem(at point: CGPoint, expectedDockPID: pid_t? = nil) -> AXUIElement? {
         let system = AXUIElementCreateSystemWide()
         AXUIElementSetMessagingTimeout(system, 0.025)
         var hit: AXUIElement?
         guard AXUIElementCopyElementAtPosition(system, Float(point.x), Float(point.y), &hit) == .success, let hit else { return nil }
         var pid: pid_t = 0
         AXUIElementGetPid(hit, &pid)
-        let running = NSRunningApplication(processIdentifier: pid)
+        if pid == expectedDockPID { return hit }
+        let ownPID = ProcessInfo.processInfo.processIdentifier
+        let running = pid == ownPID ? nil : NSRunningApplication(processIdentifier: pid)
         if running?.bundleIdentifier == "com.apple.dock" { return hit }
         // AX hit testing can see our mouse-transparent badge. Only bypass our tagged
         // badge hierarchy; settings, menus and other applications must still occlude Dock.
-        guard pid == ProcessInfo.processInfo.processIdentifier || running?.bundleIdentifier == "io.github.whdichrn.DockCounts" else { return nil }
+        guard pid == ownPID || running?.bundleIdentifier == "io.github.whdichrn.DockCounts" else { return nil }
         var ancestor = hit
         for _ in 0..<5 {
             if string(ancestor, kAXIdentifierAttribute) == "io.github.whdichrn.DockCounts.badge" {
-                guard let dock = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.dock").first else { return nil }
-                let root = AXUIElementCreateApplication(dock.processIdentifier)
+                guard let dockPID = expectedDockPID ?? NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.dock").first?.processIdentifier else { return nil }
+                let root = AXUIElementCreateApplication(dockPID)
                 AXUIElementSetMessagingTimeout(root, 0.025)
                 var underlying: AXUIElement?
                 guard AXUIElementCopyElementAtPosition(root, Float(point.x), Float(point.y), &underlying) == .success else { return nil }

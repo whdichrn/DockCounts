@@ -23,8 +23,18 @@ final class AppController: NSObject, ObservableObject {
     private var nextPermissionPoll = Date.distantPast
     private var nextGeometryPoll = Date.distantPast
     private var nextInventoryPoll = Date.distantPast
+    private var nextFullGeometryPoll = Date.distantPast
+    private var lastSnapshot: AX.DockSnapshot?
     private var dockEntries: [DockEntry] = []
-    private var windowCache: [pid_t: [WindowRecord]] = [:]
+    private var windowCache = WindowInventoryCache()
+    private let events = DockEventMonitor()
+    private var motion = DockMotion()
+    private var visibility = DockVisibility()
+    private var phase = DockPhase.unknown
+    private var dockPID: pid_t?
+    private var runningPIDs = Set<pid_t>()
+    private var applications: [URL: pid_t] = [:]
+    private var nextApplicationsPoll = Date.distantPast
     private var settingsWindow: NSWindow?
     private let picker = WindowPickerController()
     private var menuOpen = false
@@ -39,6 +49,15 @@ final class AppController: NSObject, ObservableObject {
         }
     }
     func start() {
+        events.onChange = { [weak self] in
+            guard let self else { return }
+            self.motion.wake(at: Date())
+            self.nextGeometryPoll = .distantPast
+            self.nextFullGeometryPoll = .distantPast
+            self.nextInventoryPoll = .distantPast
+        }
+        events.onApplicationsChange = { [weak self] in self?.nextApplicationsPoll = .distantPast }
+        events.start()
         refresh()
         timer = Timer(timeInterval: 1.0 / 30.0, repeats: true) { [weak self] _ in self?.refresh() }
         RunLoop.main.add(timer!, forMode: .common)
@@ -76,8 +95,8 @@ final class AppController: NSObject, ObservableObject {
     #endif
     func stop() {
         timer?.invalidate(); generation += 1; inventoryRevision += 1
-        servicesActive = false
-        picker.dismiss(notify: false); menuOpen = false; clicks.stop(); badges.hide()
+        servicesActive = false; events.stop()
+        picker.dismiss(notify: false); menuOpen = false; clicks.stop(); badges.reset()
     }
     func requestPermission() {
         let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
@@ -92,6 +111,7 @@ final class AppController: NSObject, ObservableObject {
             let compact = dockDefaults?.bool(forKey: "minimize-to-application") ?? false
             if trusted != access { trusted = access }
             if minimizeToApplication != compact { minimizeToApplication = compact }
+            events.reconnect()
             nextPermissionPoll = now.addingTimeInterval(1)
         }
         guard enabled && trusted && minimizeToApplication else {
@@ -99,8 +119,8 @@ final class AppController: NSObject, ObservableObject {
                 generation += 1; inventoryRevision += 1; servicesActive = false
                 picker.dismiss(notify: false); menuOpen = false
                 badges.hide(); clicks.stop(); intercepting = false
-                dockEntries = []; windowCache = [:]
-                nextGeometryPoll = .distantPast; nextInventoryPoll = .distantPast
+                dockEntries = []; windowCache.reset(); visibility.reset()
+                nextGeometryPoll = .distantPast; nextInventoryPoll = .distantPast; lastSnapshot = nil
             }
             setMessage(!enabled ? "已暂停" : !trusted ? "需要辅助功能权限" : "请先开启“将窗口最小化至应用程序图标”")
             return
@@ -108,33 +128,59 @@ final class AppController: NSObject, ObservableObject {
         if !servicesActive { servicesActive = true }
         if !intercepting && (checkPermissions || force) { intercepting = clicks.start() }
         setMessage(intercepting ? "运行中 · 点击 Dock 图标选择窗口" : "无法接管点击，请在授权后重新启动")
-        guard !menuOpen else { return }
         let token = generation
         let point = NSEvent.mouseLocation
         let pointer = CGPoint(x: point.x, y: (NSScreen.screens.first?.frame.height ?? 0) - point.y)
-        let interval = DockRefreshPolicy.geometryInterval(pointer: pointer, tiles: dockEntries.map(\.frame))
+        let interval = motion.interval(pointer: pointer, entries: dockEntries, at: now)
         // Enter the fast cadence immediately when the pointer approaches Dock.
         let approachingDock = interval < 0.1 && nextGeometryPoll.timeIntervalSince(now) > interval
         if !geometryBusy && (force || approachingDock || now >= nextGeometryPoll) {
             geometryBusy = true
             nextGeometryPoll = now.addingTimeInterval(interval)
-            let applications = NSWorkspace.shared.runningApplications.reduce(into: [URL: pid_t]()) { result, app in
-                if let url = app.bundleURL, app.processIdentifier != ProcessInfo.processInfo.processIdentifier { result[url.standardizedFileURL] = app.processIdentifier }
+            if now >= nextApplicationsPoll {
+                let ownPID = ProcessInfo.processInfo.processIdentifier
+                applications = NSWorkspace.shared.runningApplications.reduce(into: [URL: pid_t]()) { result, app in
+                    let pid = app.processIdentifier
+                    if pid != ownPID, let url = app.bundleURL { result[url.standardizedFileURL] = pid }
+                }
+                runningPIDs = Set(applications.values)
+                nextApplicationsPoll = now.addingTimeInterval(1)
             }
-            let cache = windowCache
+            let applications = self.applications
+            let expectedDockPID = events.dockPID
+            let axScreens = NSScreen.screens.map { Geometry.appKitRect($0.frame, primaryHeight: NSScreen.screens.first?.frame.height ?? 0) }
+            let previous = lastSnapshot
+            let refreshItems = force || interval < 0.1 || now >= nextFullGeometryPoll
+            if refreshItems { nextFullGeometryPoll = now.addingTimeInterval(0.35) }
             geometryWorker.async { [weak self] in
-                let entries = AX.dockEntries(applications: applications, windowProvider: { cache[$0] })
+                let snapshot = AX.dockSnapshot(applications: applications, dockPID: expectedDockPID, previous: previous, refreshItems: refreshItems, windowProvider: { _ in nil })
+                let evidence = snapshot.map { AX.dockEvidence($0, screenFrames: axScreens) } ?? .unknown
                 DispatchQueue.main.async {
                     guard let self else { return }
                     self.geometryBusy = false
-                    guard token == self.generation, self.servicesActive, !self.menuOpen else { return }
-                    // Geometry may finish after a newer inventory read. Merge against
-                    // the current cache so magnification never rolls counts backward.
-                    self.dockEntries = entries.map { entry in
-                        DockEntry(pid: entry.pid, name: entry.name, url: entry.url, frame: entry.frame, windows: self.windowCache[entry.pid])
+                    guard token == self.generation, self.servicesActive else { return }
+                    let finished = Date()
+                    let visible = self.visibility.update(evidence, at: finished)
+                    var moving = false
+                    if let snapshot {
+                        self.lastSnapshot = snapshot
+                        if self.dockPID != snapshot.pid {
+                            self.dockPID = snapshot.pid; self.badges.reset()
+                            self.motion.wake(at: finished)
+                        }
+                        moving = self.motion.observe(entries: snapshot.entries, dockFrame: snapshot.frame, at: finished)
+                        self.dockEntries = snapshot.entries.map { entry in
+                            DockEntry(pid: entry.pid, name: entry.name, url: entry.url, frame: entry.frame, windows: self.windowCache.windows(pid: entry.pid, at: finished))
+                        }
+                        if moving { self.nextGeometryPoll = min(self.nextGeometryPoll, finished.addingTimeInterval(1.0 / 30.0)) }
                     }
-                    self.clicks.entries = self.dockEntries
-                    self.badges.update(self.dockEntries)
+                    let nextPhase: DockPhase = evidence == .hidden ? .hidden : evidence == .unknown ? .unknown : moving ? .moving : .visible
+                    if nextPhase != self.phase {
+                        DockTrace.event("dock.phase \(self.phase.rawValue)->\(nextPhase.rawValue) visible=\(visible) entries=\(self.dockEntries.count)")
+                        self.phase = nextPhase
+                    }
+                    self.clicks.entries = self.menuOpen || !visible ? [] : self.dockEntries
+                    self.badges.update(self.dockEntries, visible: visible, runningPIDs: self.runningPIDs)
                     self.refresh()
                 }
             }
@@ -151,14 +197,14 @@ final class AppController: NSObject, ObservableObject {
                     guard let self else { return }
                     self.inventoryBusy = false
                     guard token == self.generation, revision == self.inventoryRevision, self.servicesActive else { return }
-                    self.windowCache = cache
+                    let finished = Date()
+                    for (pid, windows) in cache { self.windowCache.record(pid: pid, windows: windows, at: finished) }
+                    self.windowCache.retain(self.runningPIDs)
                     self.dockEntries = self.dockEntries.map { entry in
-                        DockEntry(pid: entry.pid, name: entry.name, url: entry.url, frame: entry.frame, windows: cache[entry.pid])
+                        DockEntry(pid: entry.pid, name: entry.name, url: entry.url, frame: entry.frame, windows: self.windowCache.windows(pid: entry.pid, at: finished))
                     }
-                    if !self.menuOpen {
-                        self.clicks.entries = self.dockEntries
-                        self.badges.update(self.dockEntries)
-                    }
+                    self.clicks.entries = self.menuOpen || !self.visibility.isVisible ? [] : self.dockEntries
+                    self.badges.update(self.dockEntries, visible: self.visibility.isVisible, runningPIDs: self.runningPIDs)
                 }
             }
         }
@@ -171,8 +217,10 @@ final class AppController: NSObject, ObservableObject {
         picker.onChoose = { [weak self] window in
             guard let self else { return }
             if WindowActivator.activate(pid: entry.pid, window: window) {
-                self.windowCache[entry.pid] = self.windowCache[entry.pid]?.map { record in
-                    CFEqual(record.element, window.element) ? WindowRecord(element: record.element, title: record.title, minimized: false) : record
+                if let cached = self.windowCache.windows(pid: entry.pid, at: Date()) {
+                    self.windowCache.record(pid: entry.pid, windows: cached.map { record in
+                        CFEqual(record.element, window.element) ? WindowRecord(element: record.element, title: record.title, minimized: false) : record
+                    }, at: Date())
                 }
             } else {
                 self.message = "该窗口已关闭或应用暂时没有响应"
