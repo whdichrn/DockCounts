@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 
 enum SettingsTab: String, CaseIterable {
-    case general, appearance, about
+    case general, enhancement, appearance, about
 }
 
 enum WindowTriggerMode: String, Codable, CaseIterable, Identifiable {
@@ -73,6 +73,35 @@ enum BadgeSize: String, Codable, CaseIterable, Identifiable {
         switch self {
         case .compact: return "紧凑"
         case .standard: return "标准"
+        }
+    }
+}
+
+enum AppAppearanceMode: String, Codable, CaseIterable, Identifiable {
+    case system
+    case light
+    case dark
+
+    var id: String { rawValue }
+    var title: String {
+        switch self {
+        case .system: return "跟随系统"
+        case .light: return "浅色"
+        case .dark: return "深色"
+        }
+    }
+    var nsAppearance: NSAppearance? {
+        switch self {
+        case .system: return nil
+        case .light: return NSAppearance(named: .aqua)
+        case .dark: return NSAppearance(named: .darkAqua)
+        }
+    }
+    var preferredColorScheme: ColorScheme? {
+        switch self {
+        case .system: return nil
+        case .light: return .light
+        case .dark: return .dark
         }
     }
 }
@@ -173,13 +202,14 @@ struct AppPreferences: Codable, Equatable {
     var cmdTabRestoreMinimized = true
     var cmdTabMultiMinimizedBehavior: CmdTabMultiMinimizedBehavior = .showPicker
     var cmdTabReopenEmptyApp = true
+    var appearanceMode: AppAppearanceMode = .system
     var appearance = BadgeAppearance()
 
     init() {}
 
     private enum CodingKeys: String, CodingKey {
         case enabled, badgesEnabled, badgeVisibility, windowSelectionEnabled, triggerMode, minimizeActiveSingleWindow
-        case cmdTabRestoreMinimized, cmdTabMultiMinimizedBehavior, cmdTabReopenEmptyApp, appearance
+        case cmdTabRestoreMinimized, cmdTabMultiMinimizedBehavior, cmdTabReopenEmptyApp, appearanceMode, appearance
         case selectSingleWindow
     }
 
@@ -199,6 +229,7 @@ struct AppPreferences: Codable, Equatable {
         cmdTabRestoreMinimized = try c.decodeIfPresent(Bool.self, forKey: .cmdTabRestoreMinimized) ?? cmdTabRestoreMinimized
         cmdTabMultiMinimizedBehavior = try c.decodeIfPresent(CmdTabMultiMinimizedBehavior.self, forKey: .cmdTabMultiMinimizedBehavior) ?? cmdTabMultiMinimizedBehavior
         cmdTabReopenEmptyApp = try c.decodeIfPresent(Bool.self, forKey: .cmdTabReopenEmptyApp) ?? cmdTabReopenEmptyApp
+        appearanceMode = try c.decodeIfPresent(AppAppearanceMode.self, forKey: .appearanceMode) ?? appearanceMode
         appearance = (try? c.decodeIfPresent(BadgeAppearance.self, forKey: .appearance)) ?? appearance
     }
 
@@ -213,6 +244,7 @@ struct AppPreferences: Codable, Equatable {
         try c.encode(cmdTabRestoreMinimized, forKey: .cmdTabRestoreMinimized)
         try c.encode(cmdTabMultiMinimizedBehavior, forKey: .cmdTabMultiMinimizedBehavior)
         try c.encode(cmdTabReopenEmptyApp, forKey: .cmdTabReopenEmptyApp)
+        try c.encode(appearanceMode, forKey: .appearanceMode)
         try c.encode(appearance.normalized(), forKey: .appearance)
     }
 

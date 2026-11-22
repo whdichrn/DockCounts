@@ -21,9 +21,11 @@ final class PreferencesTests: XCTestCase {
         XCTAssertTrue(preferences.cmdTabRestoreMinimized)
         XCTAssertEqual(preferences.cmdTabMultiMinimizedBehavior, .showPicker)
         XCTAssertTrue(preferences.cmdTabReopenEmptyApp)
+        XCTAssertEqual(preferences.appearanceMode, .system)
         XCTAssertEqual(preferences.appearance.preset, .glass)
         XCTAssertEqual(preferences.appearance.size, .compact)
         XCTAssertEqual(preferences.appearance.opacity, 1.0)
+        XCTAssertEqual(SettingsTab.allCases, [.general, .enhancement, .appearance, .about])
     }
 
     func testClickActionHandlesActiveSingleWindowAndEdgeGuards() {
@@ -102,6 +104,7 @@ final class PreferencesTests: XCTestCase {
             defaults.set(Data(legacyJSON.utf8), forKey: PreferencesStore.key)
             let migrated = store.load()
             XCTAssertEqual(migrated.triggerMode, .anyWindow)
+            XCTAssertEqual(migrated.appearanceMode, .system)
             XCTAssertEqual(migrated.appearance.preset, .solid)
             XCTAssertEqual(migrated.appearance.opacity, 0.4)
         }
@@ -119,6 +122,7 @@ final class PreferencesTests: XCTestCase {
             preferences.cmdTabRestoreMinimized = false
             preferences.cmdTabMultiMinimizedBehavior = .restoreRecent
             preferences.cmdTabReopenEmptyApp = false
+            preferences.appearanceMode = .dark
             preferences.appearance.preset = .accent
             preferences.appearance.size = .standard
             preferences.appearance.opacity = 0.72
@@ -127,6 +131,17 @@ final class PreferencesTests: XCTestCase {
             XCTAssertEqual(PreferencesStore(defaults: defaults).load(), preferences)
             XCTAssertFalse(defaults.bool(forKey: "enabled"))
         }
+    }
+
+    func testAppearanceModeMapsNSAppearanceAndColorScheme() {
+        XCTAssertNil(AppAppearanceMode.system.nsAppearance)
+        XCTAssertNil(AppAppearanceMode.system.preferredColorScheme)
+
+        XCTAssertEqual(AppAppearanceMode.light.nsAppearance?.name, .aqua)
+        XCTAssertEqual(AppAppearanceMode.light.preferredColorScheme, .light)
+
+        XCTAssertEqual(AppAppearanceMode.dark.nsAppearance?.name, .darkAqua)
+        XCTAssertEqual(AppAppearanceMode.dark.preferredColorScheme, .dark)
     }
 
     func testIncompleteOrDamagedSettingsHaveSafeDefaultsAndClampValues() {

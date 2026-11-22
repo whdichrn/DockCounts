@@ -23,6 +23,9 @@ final class AppController: NSObject, ObservableObject {
                 picker.dismiss(notify: false)
                 menuOpen = false
             }
+            if oldValue.appearanceMode != preferences.appearanceMode {
+                applyAppearanceMode()
+            }
             renderCurrentState()
             if oldValue.enabled != preferences.enabled
                 || oldValue.badgesEnabled != preferences.badgesEnabled
@@ -98,6 +101,7 @@ final class AppController: NSObject, ObservableObject {
     }
 
     func start() {
+        applyAppearanceMode()
         events.onChange = { [weak self] in
             guard let self else { return }
             self.motion.wake(at: Date())
@@ -142,14 +146,16 @@ final class AppController: NSObject, ObservableObject {
             window.standardWindowButton(.miniaturizeButton)?.isHidden = true
             window.standardWindowButton(.zoomButton)?.isHidden = true
             window.isReleasedWhenClosed = false
+            window.appearance = preferences.appearanceMode.nsAppearance
             window.contentView = hosting
-            window.contentMinSize = NSSize(width: 520, height: 300)
+            window.contentMinSize = NSSize(width: 520, height: 220)
             window.contentMaxSize = NSSize(width: 520, height: 720)
             settingsWindow = window
             settingsHostingView = hosting
             resizeSettingsWindow(animated: false)
             window.center()
         } else {
+            settingsWindow?.appearance = preferences.appearanceMode.nsAppearance
             resizeSettingsWindow(animated: false)
         }
         settingsWindow?.makeKeyAndOrderFront(nil)
@@ -159,7 +165,7 @@ final class AppController: NSObject, ObservableObject {
     func resizeSettingsWindow(animated: Bool = true) {
         guard let window = settingsWindow, let hosting = settingsHostingView else { return }
         hosting.layoutSubtreeIfNeeded()
-        let fittedHeight = min(680, max(300, ceil(hosting.fittingSize.height)))
+        let fittedHeight = min(680, max(220, ceil(hosting.fittingSize.height)))
         let targetContentSize = NSSize(width: 520, height: fittedHeight)
         let currentFrame = window.frame
         let targetFrameSize = window.frameRect(forContentRect: NSRect(origin: .zero, size: targetContentSize)).size
@@ -392,11 +398,19 @@ final class AppController: NSObject, ObservableObject {
                 visible: visibility.isVisible,
                 runningPIDs: runningPIDs,
                 visibilityMode: preferences.badgeVisibility,
-                appearance: preferences.appearance
+                appearance: preferences.appearance,
+                appearanceMode: preferences.appearanceMode
             )
         } else {
             badges.hide()
         }
+    }
+
+    private func applyAppearanceMode() {
+        let nsAppearance = preferences.appearanceMode.nsAppearance
+        NSApp?.appearance = nsAppearance
+        settingsWindow?.appearance = nsAppearance
+        picker.appearanceMode = preferences.appearanceMode
     }
 
     func showAbout() { showSettings(tab: .about) }

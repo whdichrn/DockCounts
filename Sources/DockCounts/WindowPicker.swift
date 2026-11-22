@@ -406,6 +406,12 @@ final class WindowPickerController: NSObject, NSWindowDelegate {
     var onCloseWindow: ((WindowRecord) -> Void)?
     var onDismiss: (() -> Void)?
 
+    var appearanceMode: AppAppearanceMode = .system {
+        didSet {
+            panel?.appearance = appearanceMode.nsAppearance
+        }
+    }
+
     private var panel: PickerPanel?
     private var state: WindowPickerState?
     private var localMonitor: Any?
@@ -455,6 +461,7 @@ final class WindowPickerController: NSObject, NSWindowDelegate {
         panel.setAccessibilityRole(.window)
         panel.setAccessibilitySubrole(.standardWindow)
         panel.isReleasedWhenClosed = false
+        panel.appearance = appearanceMode.nsAppearance
         panel.isFloatingPanel = true
         panel.hidesOnDeactivate = false
         panel.becomesKeyOnlyIfNeeded = false

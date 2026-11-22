@@ -61,6 +61,7 @@ struct CountBadge: View {
     let counts: WindowCounts
     var metrics: BadgeMetrics? = nil
     var appearance = BadgeAppearance()
+    var appearanceMode: AppAppearanceMode = .system
     var inWindowBackdrop = false
 
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
@@ -68,7 +69,7 @@ struct CountBadge: View {
     @Environment(\.colorScheme) private var scheme
 
     var body: some View {
-        let isDark = scheme == .dark
+        let isDark = appearanceMode.preferredColorScheme.map { $0 == .dark } ?? (scheme == .dark)
         let m = metrics ?? .make(counts: counts, tileSide: 44, scale: 2, size: appearance.size)
         let (primary, secondary) = textColors(isDark: isDark)
 
@@ -299,6 +300,7 @@ final class BadgeController {
         let counts: WindowCounts
         let metrics: BadgeMetrics
         let appearance: BadgeAppearance
+        let appearanceMode: AppAppearanceMode
     }
 
     static let collectionBehavior: NSWindow.CollectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary, .ignoresCycle]
@@ -308,7 +310,8 @@ final class BadgeController {
         visible: Bool,
         runningPIDs: Set<pid_t>,
         visibilityMode: BadgeVisibilityMode = .smart,
-        appearance: BadgeAppearance = BadgeAppearance()
+        appearance: BadgeAppearance = BadgeAppearance(),
+        appearanceMode: AppAppearanceMode = .system
     ) {
         let primaryHeight = NSScreen.screens.first?.frame.height ?? 0
         let screens = NSScreen.screens
@@ -321,7 +324,7 @@ final class BadgeController {
             let screen = screens.first { $0.frame.intersects(tile) } ?? screens.first
             let scale = screen?.backingScaleFactor ?? 2
             let metrics = BadgeMetrics.make(counts: counts, tileSide: min(tile.width, tile.height), scale: scale, size: appearance.size)
-            let presentation = Presentation(counts: counts, metrics: metrics, appearance: appearance)
+            let presentation = Presentation(counts: counts, metrics: metrics, appearance: appearance, appearanceMode: appearanceMode)
 
             let panel: NSPanel
             if let old = panels[entry.pid] {
@@ -341,8 +344,12 @@ final class BadgeController {
                 DockTrace.event("panel.create pid=\(entry.pid) number=\(panel.windowNumber)")
             }
 
+            if panel.appearance != appearanceMode.nsAppearance {
+                panel.appearance = appearanceMode.nsAppearance
+            }
+
             if previous[entry.pid] != presentation {
-                let view = CountBadge(counts: counts, metrics: metrics, appearance: appearance)
+                let view = CountBadge(counts: counts, metrics: metrics, appearance: appearance, appearanceMode: appearanceMode)
                 if let host = panel.contentView as? NSHostingView<CountBadge> {
                     host.rootView = view
                 } else {

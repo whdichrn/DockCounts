@@ -4,18 +4,28 @@ import AppKit
 struct SettingsView: View {
     @ObservedObject var controller: AppController
     @State private var confirmReset = false
-    @State private var previewBackdrop = PreviewBackdrop.light
-    @Environment(\.colorScheme) private var systemScheme
 
     var body: some View {
         VStack(spacing: 0) {
             tabBar
             Divider()
-            Group {
+            VStack(alignment: .leading, spacing: 0) {
                 switch controller.settingsTab {
                 case .general: generalTab
+                case .enhancement: enhancementTab
                 case .appearance: appearanceTab
                 case .about: aboutTab
+                }
+                if controller.settingsTab != .about {
+                    HStack {
+                        Text("更改即时生效并保存")
+                            .font(.system(size: 11.5))
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Button("还原默认设置…") { confirmReset = true }
+                    }
+                    .padding(.top, 12)
+                    .padding(.horizontal, 4)
                 }
             }
             .padding(14)
@@ -36,6 +46,7 @@ struct SettingsView: View {
         .onChange(of: controller.preferences.minimizeActiveSingleWindow) { _, _ in scheduleResize(animated: true) }
         .onChange(of: controller.preferences.cmdTabRestoreMinimized) { _, _ in scheduleResize(animated: true) }
         .onChange(of: controller.preferences.cmdTabReopenEmptyApp) { _, _ in scheduleResize(animated: true) }
+        .onChange(of: controller.preferences.badgesEnabled) { _, _ in scheduleResize(animated: true) }
     }
 
     private func scheduleResize(animated: Bool) {
@@ -47,7 +58,8 @@ struct SettingsView: View {
     private var tabBar: some View {
         HStack(spacing: 6) {
             tabButton(.general, title: "通用", symbol: "gearshape")
-            tabButton(.appearance, title: "外观与菜单", symbol: "circle.lefthalf.filled")
+            tabButton(.enhancement, title: "增强", symbol: "sparkles")
+            tabButton(.appearance, title: "外观", symbol: "circle.lefthalf.filled")
             tabButton(.about, title: "关于", symbol: "info.circle")
         }
         .padding(.horizontal, 16)
@@ -109,6 +121,42 @@ struct SettingsView: View {
                 .padding(.vertical, 10)
             }
 
+            SettingsCard(title: "启动与系统状态") {
+                LoginItemRow(login: controller.login)
+                SettingsDivider()
+                SettingsRow {
+                    Label(
+                        controller.trusted ? "辅助功能已授权" : "需要辅助功能权限",
+                        systemImage: controller.trusted ? "checkmark.circle.fill" : "lock.circle.fill"
+                    )
+                    .foregroundStyle(controller.trusted ? Color.primary : Color.orange)
+                    Spacer()
+                    if !controller.trusted {
+                        Button("授权辅助功能…", action: controller.requestPermission)
+                    }
+                }
+                SettingsDivider()
+                SettingsRow {
+                    Label(
+                        controller.minimizeToApplication
+                            ? "已开启“将窗口最小化至应用程序图标”"
+                            : "建议开启“将窗口最小化至应用程序图标”",
+                        systemImage: controller.minimizeToApplication ? "checkmark.circle.fill" : "info.circle"
+                    )
+                    .foregroundStyle(controller.minimizeToApplication ? Color.primary : Color.secondary)
+                    Spacer()
+                    if !controller.minimizeToApplication {
+                        Button("前往设置") {
+                            NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.Desktop-Settings.extension")!)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private var enhancementTab: some View {
+        VStack(alignment: .leading, spacing: 12) {
             SettingsCard(title: "点按 Dock 图标") {
                 SettingsRow {
                     Text("点按图标选择窗口")
@@ -191,77 +239,31 @@ struct SettingsView: View {
                     .padding(.horizontal, 14)
                     .padding(.vertical, 9)
             }
-
-            SettingsCard(title: "启动与系统状态") {
-                LoginItemRow(login: controller.login)
-                SettingsDivider()
-                SettingsRow {
-                    Label(
-                        controller.trusted ? "辅助功能已授权" : "需要辅助功能权限",
-                        systemImage: controller.trusted ? "checkmark.circle.fill" : "lock.circle.fill"
-                    )
-                    .foregroundStyle(controller.trusted ? Color.primary : Color.orange)
-                    Spacer()
-                    if !controller.trusted {
-                        Button("授权辅助功能…", action: controller.requestPermission)
-                    }
-                }
-                SettingsDivider()
-                SettingsRow {
-                    Label(
-                        controller.minimizeToApplication
-                            ? "已开启“将窗口最小化至应用程序图标”"
-                            : "建议开启“将窗口最小化至应用程序图标”",
-                        systemImage: controller.minimizeToApplication ? "checkmark.circle.fill" : "info.circle"
-                    )
-                    .foregroundStyle(controller.minimizeToApplication ? Color.primary : Color.secondary)
-                    Spacer()
-                    if !controller.minimizeToApplication {
-                        Button("前往设置") {
-                            NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.Desktop-Settings.extension")!)
-                        }
-                    }
-                }
-            }
         }
     }
 
     private var appearanceTab: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            SettingsCard {
-                VStack(spacing: 10) {
-                    HStack {
-                        Text("实时模拟 Dock")
-                            .font(.system(size: 12.5, weight: .semibold))
-                        Spacer()
-                        Picker("预览后景", selection: $previewBackdrop) {
-                            Text("浅色").tag(PreviewBackdrop.light)
-                            Text("深色").tag(PreviewBackdrop.dark)
-                            Text("彩色").tag(PreviewBackdrop.colorful)
+        VStack(alignment: .leading, spacing: 12) {
+            SettingsCard(title: "整体外观") {
+                SettingsRow {
+                    Text("外观模式")
+                    Spacer()
+                    Picker("外观模式", selection: $controller.preferences.appearanceMode) {
+                        ForEach(AppAppearanceMode.allCases) { mode in
+                            Text(mode.title).tag(mode)
                         }
-                        .labelsHidden()
-                        .pickerStyle(.segmented)
-                        .frame(width: 156)
-                        .accessibilityIdentifier("preview-backdrop")
                     }
-
-                    DockPreviewStage(
-                        backdrop: previewBackdrop,
-                        appearance: controller.preferences.appearance,
-                        visibilityMode: controller.preferences.badgeVisibility,
-                        badgesEnabled: controller.preferences.badgesEnabled && controller.preferences.enabled,
-                        systemScheme: systemScheme
-                    )
-
-                    HStack(spacing: 24) {
-                        Text("单窗口").frame(width: 48)
-                        Text("多窗口").frame(width: 48)
-                        Text("含最小化").frame(width: 56)
-                    }
-                    .font(.system(size: 10.5))
-                    .foregroundStyle(.secondary)
+                    .labelsHidden()
+                    .pickerStyle(.segmented)
+                    .frame(width: 222)
+                    .accessibilityIdentifier("app-appearance-mode")
                 }
-                .padding(14)
+                SettingsDivider()
+                Text("统一作用于程序坞角标、窗口选择菜单与设置窗口。")
+                    .font(.system(size: 11.5))
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 9)
             }
 
             SettingsCard(title: "Dock 角标") {
@@ -285,6 +287,7 @@ struct SettingsView: View {
                     .labelsHidden()
                     .pickerStyle(.segmented)
                     .frame(width: 246)
+                    .disabled(!controller.preferences.badgesEnabled)
                     .accessibilityIdentifier("badge-visibility")
                 }
                 SettingsDivider()
@@ -299,6 +302,7 @@ struct SettingsView: View {
                     .labelsHidden()
                     .pickerStyle(.menu)
                     .frame(width: 148)
+                    .disabled(!controller.preferences.badgesEnabled)
                     .accessibilityIdentifier("badge-preset")
                 }
                 SettingsDivider()
@@ -313,6 +317,7 @@ struct SettingsView: View {
                     .labelsHidden()
                     .pickerStyle(.segmented)
                     .frame(width: 132)
+                    .disabled(!controller.preferences.badgesEnabled)
                     .accessibilityIdentifier("badge-size")
                 }
                 SettingsDivider()
@@ -321,6 +326,7 @@ struct SettingsView: View {
                     Spacer(minLength: 16)
                     Slider(value: $controller.preferences.appearance.opacity, in: 0.4...1.0)
                         .frame(width: 170)
+                        .disabled(!controller.preferences.badgesEnabled)
                         .accessibilityIdentifier("badge-opacity")
                     Text(controller.preferences.appearance.opacity.formatted(.percent.precision(.fractionLength(0))))
                         .font(.system(size: 12, design: .monospaced))
@@ -328,15 +334,6 @@ struct SettingsView: View {
                         .frame(width: 38, alignment: .trailing)
                 }
             }
-
-            HStack {
-                Text("更改即时生效并保存")
-                    .font(.system(size: 11.5))
-                    .foregroundStyle(.secondary)
-                Spacer()
-                Button("还原默认设置…") { confirmReset = true }
-            }
-            .padding(.horizontal, 4)
         }
     }
 
@@ -389,116 +386,6 @@ struct SettingsView: View {
         if !controller.trusted { return .orange }
         if controller.preferences.windowSelectionEnabled && !controller.intercepting { return .red }
         return .green
-    }
-}
-
-private enum PreviewBackdrop { case light, dark, colorful }
-
-private struct DockPreviewStage: View {
-    let backdrop: PreviewBackdrop
-    let appearance: BadgeAppearance
-    let visibilityMode: BadgeVisibilityMode
-    let badgesEnabled: Bool
-    let systemScheme: ColorScheme
-
-    private var effectiveScheme: ColorScheme {
-        switch backdrop {
-        case .light: return .light
-        case .dark: return .dark
-        case .colorful: return systemScheme
-        }
-    }
-
-    var body: some View {
-        ZStack {
-            backdropGradient
-            VStack {
-                Spacer(minLength: 8)
-                HStack(spacing: 14) {
-                    simulatedTile(
-                        symbol: "doc.text.fill",
-                        colors: [Color(red: 0.25, green: 0.62, blue: 0.98), Color(red: 0.13, green: 0.42, blue: 0.88)],
-                        counts: WindowCounts(minimized: 0, total: 1)
-                    )
-                    simulatedTile(
-                        symbol: "terminal.fill",
-                        colors: [Color(red: 0.34, green: 0.36, blue: 0.72), Color(red: 0.18, green: 0.20, blue: 0.45)],
-                        counts: WindowCounts(minimized: 0, total: 3)
-                    )
-                    simulatedTile(
-                        symbol: "note.text",
-                        colors: [Color(red: 0.96, green: 0.56, blue: 0.24), Color(red: 0.86, green: 0.35, blue: 0.18)],
-                        counts: WindowCounts(minimized: 2, total: 4)
-                    )
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 10)
-                .background(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .fill(effectiveScheme == .dark ? Color.black.opacity(0.36) : Color.white.opacity(0.55))
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .strokeBorder(effectiveScheme == .dark ? Color.white.opacity(0.16) : Color.black.opacity(0.08), lineWidth: 0.75)
-                )
-                Spacer(minLength: 8)
-            }
-        }
-        .frame(height: 100)
-        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-        .environment(\.colorScheme, effectiveScheme)
-        .accessibilityHidden(true)
-    }
-
-    @ViewBuilder
-    private var backdropGradient: some View {
-        switch backdrop {
-        case .light:
-            LinearGradient(
-                colors: [Color(red: 0.90, green: 0.94, blue: 0.99), Color(red: 0.78, green: 0.86, blue: 0.95)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        case .dark:
-            LinearGradient(
-                colors: [Color(red: 0.12, green: 0.15, blue: 0.24), Color(red: 0.05, green: 0.07, blue: 0.12)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        case .colorful:
-            LinearGradient(
-                colors: [
-                    Color(red: 0.15, green: 0.56, blue: 0.82),
-                    Color(red: 0.44, green: 0.30, blue: 0.78),
-                    Color(red: 0.88, green: 0.36, blue: 0.48)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        }
-    }
-
-    private func simulatedTile(symbol: String, colors: [Color], counts: WindowCounts) -> some View {
-        let metrics = BadgeMetrics.make(counts: counts, tileSide: 44, scale: 2, size: appearance.size)
-        let shouldDisplay = visibilityMode.shouldShow(counts)
-        return ZStack(alignment: .bottomTrailing) {
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(LinearGradient(colors: colors, startPoint: .topLeading, endPoint: .bottomTrailing))
-                .frame(width: 44, height: 44)
-                .overlay(
-                    Image(systemName: symbol)
-                        .font(.system(size: 20, weight: .semibold))
-                        .foregroundStyle(.white.opacity(0.95))
-                )
-                .shadow(color: .black.opacity(0.18), radius: 2, y: 1)
-
-            if shouldDisplay {
-                CountBadge(counts: counts, metrics: metrics, appearance: appearance, inWindowBackdrop: true)
-                    .opacity(badgesEnabled ? 1.0 : 0.45)
-                    .offset(x: 2, y: 2)
-            }
-        }
-        .frame(width: 48, height: 48)
     }
 }
 
