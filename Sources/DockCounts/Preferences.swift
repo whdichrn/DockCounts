@@ -142,6 +142,27 @@ enum DockClickAction: Equatable {
     case minimizeSingleWindow
 }
 
+enum CmdTabMultiMinimizedBehavior: String, Codable, CaseIterable, Identifiable {
+    case showPicker
+    case restoreRecent
+
+    var id: String { rawValue }
+    var title: String {
+        switch self {
+        case .showPicker: return "弹出窗口菜单"
+        case .restoreRecent: return "恢复最近窗口"
+        }
+    }
+}
+
+enum CmdTabAction: Equatable {
+    case none
+    case restoreSingle(WindowRecord)
+    case restoreFirst(WindowRecord)
+    case showPicker([WindowRecord])
+    case reopenApp
+}
+
 struct AppPreferences: Codable, Equatable {
     var enabled = true
     var badgesEnabled = true
@@ -149,12 +170,16 @@ struct AppPreferences: Codable, Equatable {
     var windowSelectionEnabled = true
     var triggerMode: WindowTriggerMode = .multipleWindows
     var minimizeActiveSingleWindow = true
+    var cmdTabRestoreMinimized = true
+    var cmdTabMultiMinimizedBehavior: CmdTabMultiMinimizedBehavior = .showPicker
+    var cmdTabReopenEmptyApp = true
     var appearance = BadgeAppearance()
 
     init() {}
 
     private enum CodingKeys: String, CodingKey {
-        case enabled, badgesEnabled, badgeVisibility, windowSelectionEnabled, triggerMode, minimizeActiveSingleWindow, appearance
+        case enabled, badgesEnabled, badgeVisibility, windowSelectionEnabled, triggerMode, minimizeActiveSingleWindow
+        case cmdTabRestoreMinimized, cmdTabMultiMinimizedBehavior, cmdTabReopenEmptyApp, appearance
         case selectSingleWindow
     }
 
@@ -171,6 +196,9 @@ struct AppPreferences: Codable, Equatable {
             triggerMode = legacySingle ? .anyWindow : .multipleWindows
         }
         minimizeActiveSingleWindow = try c.decodeIfPresent(Bool.self, forKey: .minimizeActiveSingleWindow) ?? minimizeActiveSingleWindow
+        cmdTabRestoreMinimized = try c.decodeIfPresent(Bool.self, forKey: .cmdTabRestoreMinimized) ?? cmdTabRestoreMinimized
+        cmdTabMultiMinimizedBehavior = try c.decodeIfPresent(CmdTabMultiMinimizedBehavior.self, forKey: .cmdTabMultiMinimizedBehavior) ?? cmdTabMultiMinimizedBehavior
+        cmdTabReopenEmptyApp = try c.decodeIfPresent(Bool.self, forKey: .cmdTabReopenEmptyApp) ?? cmdTabReopenEmptyApp
         appearance = (try? c.decodeIfPresent(BadgeAppearance.self, forKey: .appearance)) ?? appearance
     }
 
@@ -182,10 +210,15 @@ struct AppPreferences: Codable, Equatable {
         try c.encode(windowSelectionEnabled, forKey: .windowSelectionEnabled)
         try c.encode(triggerMode, forKey: .triggerMode)
         try c.encode(minimizeActiveSingleWindow, forKey: .minimizeActiveSingleWindow)
+        try c.encode(cmdTabRestoreMinimized, forKey: .cmdTabRestoreMinimized)
+        try c.encode(cmdTabMultiMinimizedBehavior, forKey: .cmdTabMultiMinimizedBehavior)
+        try c.encode(cmdTabReopenEmptyApp, forKey: .cmdTabReopenEmptyApp)
         try c.encode(appearance.normalized(), forKey: .appearance)
     }
 
     var needsDock: Bool { enabled && (badgesEnabled || windowSelectionEnabled) }
+    var needsCmdTabEnhancer: Bool { enabled && (cmdTabRestoreMinimized || cmdTabReopenEmptyApp) }
+    var needsAnyService: Bool { needsDock || needsCmdTabEnhancer }
 
     func selectsWindow(total: Int) -> Bool {
         enabled && windowSelectionEnabled && (triggerMode == .anyWindow ? total > 0 : total > 1)
@@ -207,6 +240,30 @@ struct AppPreferences: Codable, Equatable {
             return .minimizeSingleWindow
         }
         return selectsWindow(total: windows.count) ? .openPicker : .passThrough
+    }
+
+    func cmdTabAction(
+        windows: [WindowRecord],
+        onScreenWindowCount: Int,
+        spaceChangedRecently: Bool,
+        isRegularApp: Bool
+    ) -> CmdTabAction {
+        guard enabled, isRegularApp, onScreenWindowCount == 0, !spaceChangedRecently else { return .none }
+        if !windows.isEmpty {
+            guard cmdTabRestoreMinimized,
+                  windows.allSatisfy(\.minimized) else {
+                return .none
+            }
+            if windows.count == 1 {
+                return .restoreSingle(windows[0])
+            }
+            switch cmdTabMultiMinimizedBehavior {
+            case .showPicker: return .showPicker(windows)
+            case .restoreRecent: return .restoreFirst(windows[0])
+            }
+        }
+        guard cmdTabReopenEmptyApp else { return .none }
+        return .reopenApp
     }
 
     func showsBadge(counts: WindowCounts) -> Bool {

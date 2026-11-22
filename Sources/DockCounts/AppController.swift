@@ -15,6 +15,9 @@ final class AppController: NSObject, ObservableObject {
                 clicks.stop()
                 intercepting = false
             }
+            if !preferences.needsCmdTabEnhancer {
+                switchEnhancer.stop()
+            }
             if oldValue.triggerMode != preferences.triggerMode
                 || oldValue.minimizeActiveSingleWindow != preferences.minimizeActiveSingleWindow {
                 picker.dismiss(notify: false)
@@ -23,7 +26,9 @@ final class AppController: NSObject, ObservableObject {
             renderCurrentState()
             if oldValue.enabled != preferences.enabled
                 || oldValue.badgesEnabled != preferences.badgesEnabled
-                || oldValue.windowSelectionEnabled != preferences.windowSelectionEnabled {
+                || oldValue.windowSelectionEnabled != preferences.windowSelectionEnabled
+                || oldValue.cmdTabRestoreMinimized != preferences.cmdTabRestoreMinimized
+                || oldValue.cmdTabReopenEmptyApp != preferences.cmdTabReopenEmptyApp {
                 refresh(force: true)
             }
         }
@@ -37,6 +42,7 @@ final class AppController: NSObject, ObservableObject {
 
     private let badges = BadgeController()
     private let clicks = ClickInterceptor()
+    private let switchEnhancer = AppSwitchEnhancer()
     private let geometryWorker = DispatchQueue(label: "DockCounts.dockGeometry", qos: .userInteractive)
     private let inventoryWorker = DispatchQueue(label: "DockCounts.windowInventory", qos: .userInitiated)
     private var timer: Timer?
@@ -85,6 +91,9 @@ final class AppController: NSObject, ObservableObject {
         picker.onDismiss = { [weak self] in
             self?.menuOpen = false
             self?.refresh(force: true)
+        }
+        switchEnhancer.onCmdTabActivated = { [weak self] app, spaceChanged in
+            self?.handleCmdTabActivation(app, spaceChangedDuringSwitch: spaceChanged)
         }
     }
 
@@ -135,7 +144,7 @@ final class AppController: NSObject, ObservableObject {
             window.isReleasedWhenClosed = false
             window.contentView = hosting
             window.contentMinSize = NSSize(width: 520, height: 300)
-            window.contentMaxSize = NSSize(width: 520, height: 680)
+            window.contentMaxSize = NSSize(width: 520, height: 720)
             settingsWindow = window
             settingsHostingView = hosting
             resizeSettingsWindow(animated: false)
@@ -150,7 +159,7 @@ final class AppController: NSObject, ObservableObject {
     func resizeSettingsWindow(animated: Bool = true) {
         guard let window = settingsWindow, let hosting = settingsHostingView else { return }
         hosting.layoutSubtreeIfNeeded()
-        let fittedHeight = min(640, max(300, ceil(hosting.fittingSize.height)))
+        let fittedHeight = min(680, max(300, ceil(hosting.fittingSize.height)))
         let targetContentSize = NSSize(width: 520, height: fittedHeight)
         let currentFrame = window.frame
         let targetFrameSize = window.frameRect(forContentRect: NSRect(origin: .zero, size: targetContentSize)).size
@@ -191,6 +200,7 @@ final class AppController: NSObject, ObservableObject {
         inventoryRevision += 1
         servicesActive = false
         events.stop()
+        switchEnhancer.stop()
         picker.dismiss(notify: false)
         menuOpen = false
         clicks.stop()
@@ -215,25 +225,25 @@ final class AppController: NSObject, ObservableObject {
             nextPermissionPoll = now.addingTimeInterval(1)
         }
 
-        guard preferences.needsDock && trusted else {
+        guard preferences.needsAnyService && trusted else {
             events.stop()
-            if servicesActive {
-                generation += 1
-                inventoryRevision += 1
-                servicesActive = false
-                picker.dismiss(notify: false)
-                menuOpen = false
-                badges.hide()
-                clicks.stop()
-                intercepting = false
-                dockEntries = []
-                windowCache.reset()
-                visibility.reset()
-                nextGeometryPoll = .distantPast
-                nextInventoryPoll = .distantPast
-                lastSnapshot = nil
-            }
-            setMessage(!preferences.enabled ? "已暂停" : !preferences.needsDock ? "角标与窗口选择均已关闭" : "需要辅助功能权限")
+            switchEnhancer.stop()
+            deactivateDockTrackingIfNeeded()
+            setMessage(!preferences.enabled ? "已暂停" : !preferences.needsAnyService ? "所有功能均已关闭" : "需要辅助功能权限")
+            rescheduleTimer(interval: 1.0)
+            return
+        }
+
+        if preferences.needsCmdTabEnhancer {
+            _ = switchEnhancer.start()
+        } else {
+            switchEnhancer.stop()
+        }
+
+        guard preferences.needsDock else {
+            events.stop()
+            deactivateDockTrackingIfNeeded()
+            setMessage("运行中 · 仅 ⌘Tab 增强")
             rescheduleTimer(interval: 1.0)
             return
         }
@@ -251,12 +261,14 @@ final class AppController: NSObject, ObservableObject {
             intercepting = false
         }
 
+        var parts: [String] = []
+        if preferences.badgesEnabled { parts.append("角标") }
+        if preferences.windowSelectionEnabled { parts.append("左键") }
+        if preferences.needsCmdTabEnhancer { parts.append("⌘Tab") }
         setMessage(
             preferences.windowSelectionEnabled && !intercepting
                 ? "无法接管点击，请在授权后重新启动"
-                : preferences.windowSelectionEnabled
-                    ? (preferences.badgesEnabled ? "运行中 · 角标与左键菜单" : "运行中 · 仅左键菜单")
-                    : "运行中 · 仅显示角标"
+                : "运行中 · " + parts.joined(separator: " / ")
         )
 
         let token = generation
@@ -478,12 +490,121 @@ final class AppController: NSObject, ObservableObject {
             break
         }
 
+        presentPicker(
+            name: entry.name,
+            appURL: entry.url,
+            pids: entry.pids,
+            windows: windows,
+            anchorIcon: entry.frame,
+            at: point
+        )
+    }
+
+    private func deactivateDockTrackingIfNeeded() {
+        guard servicesActive else { return }
+        generation += 1
+        inventoryRevision += 1
+        servicesActive = false
+        picker.dismiss(notify: false)
+        menuOpen = false
+        badges.hide()
+        clicks.stop()
+        intercepting = false
+        dockEntries = []
+        windowCache.reset()
+        visibility.reset()
+        nextGeometryPoll = .distantPast
+        nextInventoryPoll = .distantPast
+        lastSnapshot = nil
+    }
+
+    private func handleCmdTabActivation(_ app: NSRunningApplication, spaceChangedDuringSwitch: Bool) {
+        guard trusted, !menuOpen, preferences.needsCmdTabEnhancer else { return }
+        let targetPID = app.processIdentifier
+        var pids = [targetPID]
+        if let bundleURL = app.bundleURL?.standardizedFileURL,
+           let grouped = applications[bundleURL] {
+            for pid in grouped where !pids.contains(pid) {
+                pids.append(pid)
+            }
+        }
+        let pidSet = Set(pids)
+        let isRegular = app.activationPolicy == .regular
+        let appName = app.localizedName ?? "应用"
+        let bundleURL = app.bundleURL
+        let knownDockPID = dockPID
+
+        inventoryWorker.async { [weak self] in
+            let windows = pids.compactMap { AX.windows(pid: $0) }.flatMap { $0 }
+            let summary = AX.cgWindowSummary(pids: pidSet)
+            DispatchQueue.main.async {
+                guard let self,
+                      self.trusted,
+                      !self.menuOpen,
+                      self.preferences.enabled,
+                      NSWorkspace.shared.frontmostApplication?.processIdentifier == targetPID else {
+                    return
+                }
+                let action = self.preferences.cmdTabAction(
+                    windows: windows,
+                    onScreenWindowCount: summary.onScreenCount,
+                    spaceChangedRecently: spaceChangedDuringSwitch,
+                    isRegularApp: isRegular
+                )
+                switch action {
+                case .none:
+                    return
+                case .restoreSingle(let window), .restoreFirst(let window):
+                    let windowPID = window.pid != 0 ? window.pid : targetPID
+                    if WindowActivator.activate(pid: windowPID, window: window) {
+                        self.markUnminimizedInCache(pid: windowPID, element: window.element)
+                        self.renderCurrentState()
+                    }
+                    self.inventoryRevision += 1
+                    self.nextInventoryPoll = .distantPast
+                    self.refresh(force: true)
+                case .showPicker(let minimizedWindows):
+                    self.presentPicker(
+                        name: appName,
+                        appURL: bundleURL,
+                        pids: pids,
+                        windows: minimizedWindows,
+                        anchorIcon: nil,
+                        at: nil
+                    )
+                case .reopenApp:
+                    guard let bundleURL, self.switchEnhancer.canReopen(pid: targetPID) else { return }
+                    if app.isHidden { app.unhide() }
+                    self.inventoryWorker.async {
+                        let pressed = AX.pressDockItem(for: bundleURL, dockPID: knownDockPID)
+                        if !pressed {
+                            DispatchQueue.main.async {
+                                let config = NSWorkspace.OpenConfiguration()
+                                config.activates = true
+                                NSWorkspace.shared.openApplication(at: bundleURL, configuration: config)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func presentPicker(
+        name: String,
+        appURL: URL?,
+        pids: [pid_t],
+        windows: [WindowRecord],
+        anchorIcon: CGRect?,
+        at point: CGPoint?
+    ) {
+        let fallbackPID = pids.first ?? 0
         clicks.entries = []
         menuOpen = true
 
         picker.onChoose = { [weak self] window in
             guard let self else { return }
-            let targetPID = window.pid != 0 ? window.pid : entry.pid
+            let targetPID = window.pid != 0 ? window.pid : fallbackPID
             if WindowActivator.activate(pid: targetPID, window: window) {
                 self.markUnminimizedInCache(pid: targetPID, element: window.element)
             } else {
@@ -495,14 +616,22 @@ final class AppController: NSObject, ObservableObject {
 
         picker.onActivateAll = { [weak self] allWindows in
             guard let self else { return }
-            WindowActivator.activateAll(pid: entry.pid, windows: allWindows)
+            WindowActivator.activateAll(pid: fallbackPID, windows: allWindows)
             let now = Date()
-            for pid in entry.pids {
+            for pid in pids {
                 if let cached = self.windowCache.windows(pid: pid, at: now) {
                     self.windowCache.record(
                         pid: pid,
                         windows: cached.map {
-                            WindowRecord(element: $0.element, title: $0.title, minimized: false, isMain: $0.isMain, pid: $0.pid)
+                            WindowRecord(
+                                element: $0.element,
+                                title: $0.title,
+                                minimized: false,
+                                isMain: $0.isMain,
+                                pid: $0.pid,
+                                isFullScreen: $0.isFullScreen,
+                                canMinimize: $0.canMinimize
+                            )
                         },
                         at: now
                     )
@@ -514,7 +643,7 @@ final class AppController: NSObject, ObservableObject {
 
         picker.onToggleMinimize = { [weak self] window in
             guard let self else { return }
-            let targetPID = window.pid != 0 ? window.pid : entry.pid
+            let targetPID = window.pid != 0 ? window.pid : fallbackPID
             _ = WindowActivator.toggleMinimize(pid: targetPID, window: window)
             self.inventoryRevision += 1
             self.nextInventoryPoll = .distantPast
@@ -529,6 +658,10 @@ final class AppController: NSObject, ObservableObject {
             self.refresh(force: true)
         }
 
-        picker.present(name: entry.name, appURL: entry.url, windows: windows, icon: entry.frame, at: point)
+        if let anchorIcon, let point {
+            picker.present(name: name, appURL: appURL, windows: windows, icon: anchorIcon, at: point)
+        } else {
+            picker.presentCentered(name: name, appURL: appURL, windows: windows)
+        }
     }
 }

@@ -399,7 +399,30 @@ final class WindowPickerController: NSObject, NSWindowDelegate {
         let size = WindowPickerMetrics.size(name: name, windows: state.windows, scale: screen.backingScaleFactor)
         let edge = UserDefaults(suiteName: "com.apple.dock")?.string(forKey: "orientation") ?? "bottom"
         let frame = PickerPlacement.frame(icon: iconRect, point: anchor, size: size, visible: screen.visibleFrame, edge: edge)
+        present(name: name, appURL: appURL, state: state, frame: frame)
+    }
 
+    func presentCentered(name: String, appURL: URL? = nil, windows: [WindowRecord]) {
+        dismiss(notify: false)
+        let mouse = NSEvent.mouseLocation
+        guard let screen = NSScreen.screens.first(where: { $0.frame.contains(mouse) }) ?? NSScreen.main ?? NSScreen.screens.first else {
+            onDismiss?()
+            return
+        }
+        let state = WindowPickerState(windows: windows)
+        let size = WindowPickerMetrics.size(name: name, windows: state.windows, scale: screen.backingScaleFactor)
+        let visible = screen.visibleFrame
+        let width = min(size.width, max(1, visible.width - 16))
+        let height = min(size.height, max(1, visible.height - 16))
+        let rawX = visible.midX - width / 2
+        let rawY = visible.midY - height / 2 + 40
+        let x = max(visible.minX + 8, min(rawX, visible.maxX - width - 8))
+        let y = max(visible.minY + 8, min(rawY, visible.maxY - height - 8))
+        let frame = CGRect(x: x.rounded(), y: y.rounded(), width: width, height: height)
+        present(name: name, appURL: appURL, state: state, frame: frame)
+    }
+
+    private func present(name: String, appURL: URL?, state: WindowPickerState, frame: CGRect) {
         let panel = PickerPanel(contentRect: frame, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
         panel.title = name
         panel.setAccessibilityIdentifier("io.github.whdichrn.DockCounts.window-picker")

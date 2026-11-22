@@ -39,7 +39,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         #endif
         if !UserDefaults.standard.bool(forKey: "hasLaunched")
-            || (!controller.trusted && controller.preferences.needsDock)
+            || (!controller.trusted && controller.preferences.needsAnyService)
             || CommandLine.arguments.contains("--settings") {
             UserDefaults.standard.set(true, forKey: "hasLaunched")
             controller.showSettings()
@@ -61,13 +61,14 @@ struct StatusMenuView: View {
 
     var body: some View {
         Text(controller.message)
-        if !controller.trusted && controller.preferences.needsDock {
+        if !controller.trusted && controller.preferences.needsAnyService {
             Button("授权辅助功能…", action: controller.requestPermission)
         }
         Divider()
         Toggle("启用 DockCounts", isOn: $controller.preferences.enabled)
         Toggle("显示 Dock 角标", isOn: $controller.preferences.badgesEnabled)
         Toggle("左键窗口选择", isOn: $controller.preferences.windowSelectionEnabled)
+        Toggle("⌘Tab 切换增强", isOn: cmdTabBinding)
         Divider()
         Button("设置…") { controller.showSettings() }
             .keyboardShortcut(",")
@@ -75,5 +76,15 @@ struct StatusMenuView: View {
         Divider()
         Button("退出 DockCounts") { NSApp.terminate(nil) }
             .keyboardShortcut("q")
+    }
+
+    private var cmdTabBinding: Binding<Bool> {
+        Binding(
+            get: { controller.preferences.cmdTabRestoreMinimized || controller.preferences.cmdTabReopenEmptyApp },
+            set: { enabled in
+                controller.preferences.cmdTabRestoreMinimized = enabled
+                controller.preferences.cmdTabReopenEmptyApp = enabled
+            }
+        )
     }
 }

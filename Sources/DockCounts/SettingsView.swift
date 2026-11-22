@@ -34,6 +34,8 @@ struct SettingsView: View {
         .onChange(of: controller.login.state) { _, _ in scheduleResize(animated: true) }
         .onChange(of: controller.preferences.windowSelectionEnabled) { _, _ in scheduleResize(animated: true) }
         .onChange(of: controller.preferences.minimizeActiveSingleWindow) { _, _ in scheduleResize(animated: true) }
+        .onChange(of: controller.preferences.cmdTabRestoreMinimized) { _, _ in scheduleResize(animated: true) }
+        .onChange(of: controller.preferences.cmdTabReopenEmptyApp) { _, _ in scheduleResize(animated: true) }
     }
 
     private func scheduleResize(animated: Bool) {
@@ -143,6 +145,47 @@ struct SettingsView: View {
                 }
                 SettingsDivider()
                 Text(controller.preferences.triggerMode.summary + (controller.preferences.minimizeActiveSingleWindow ? " 单窗口处于前台时再点直接最小化。" : ""))
+                    .font(.system(size: 11.5))
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 9)
+            }
+
+            SettingsCard(title: "⌘Tab 切换增强") {
+                SettingsRow {
+                    Text("全部最小化时自动处理")
+                    Spacer()
+                    Toggle("", isOn: $controller.preferences.cmdTabRestoreMinimized)
+                        .labelsHidden()
+                        .toggleStyle(.switch)
+                        .accessibilityIdentifier("cmdtab-restore-minimized")
+                }
+                SettingsDivider()
+                SettingsRow {
+                    Text("多个最小化窗口")
+                    Spacer()
+                    Picker("多个最小化窗口", selection: $controller.preferences.cmdTabMultiMinimizedBehavior) {
+                        ForEach(CmdTabMultiMinimizedBehavior.allCases) { behavior in
+                            Text(behavior.title).tag(behavior)
+                        }
+                    }
+                    .labelsHidden()
+                    .pickerStyle(.segmented)
+                    .frame(width: 210)
+                    .disabled(!controller.preferences.cmdTabRestoreMinimized)
+                    .accessibilityIdentifier("cmdtab-multi-behavior")
+                }
+                SettingsDivider()
+                SettingsRow {
+                    Text("零窗口应用自动新建窗口")
+                    Spacer()
+                    Toggle("", isOn: $controller.preferences.cmdTabReopenEmptyApp)
+                        .labelsHidden()
+                        .toggleStyle(.switch)
+                        .accessibilityIdentifier("cmdtab-reopen-empty")
+                }
+                SettingsDivider()
+                Text("仅在通过 ⌘Tab 切换且确认应用在其他空间无可见窗口时触发。")
                     .font(.system(size: 11.5))
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, 14)

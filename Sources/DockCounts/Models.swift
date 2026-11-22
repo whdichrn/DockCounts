@@ -1,7 +1,7 @@
 import AppKit
 import ApplicationServices
 
-struct WindowRecord {
+struct WindowRecord: Equatable {
     let element: AXUIElement
     let title: String
     let minimized: Bool
@@ -26,6 +26,16 @@ struct WindowRecord {
         self.pid = pid
         self.isFullScreen = isFullScreen
         self.canMinimize = canMinimize
+    }
+
+    static func == (lhs: WindowRecord, rhs: WindowRecord) -> Bool {
+        CFEqual(lhs.element, rhs.element)
+            && lhs.title == rhs.title
+            && lhs.minimized == rhs.minimized
+            && lhs.isMain == rhs.isMain
+            && lhs.pid == rhs.pid
+            && lhs.isFullScreen == rhs.isFullScreen
+            && lhs.canMinimize == rhs.canMinimize
     }
 }
 
@@ -316,5 +326,57 @@ enum AX {
             return nil
         }
         return entry
+    }
+
+    static func cgWindowSummary(pids: Set<pid_t>) -> (globalCount: Int, onScreenCount: Int) {
+        guard !pids.isEmpty else { return (0, 0) }
+        let all = CGWindowListCopyWindowInfo([.optionAll, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] ?? []
+        let onScreen = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] ?? []
+        let onScreenIDs = Set(onScreen.compactMap { ($0[kCGWindowNumber as String] as? NSNumber)?.intValue })
+        var globalCount = 0
+        var onScreenCount = 0
+        for info in all {
+            guard let ownerPID = (info[kCGWindowOwnerPID as String] as? NSNumber)?.int32Value,
+                  pids.contains(ownerPID),
+                  let layer = (info[kCGWindowLayer as String] as? NSNumber)?.intValue,
+                  layer == 0,
+                  let alpha = (info[kCGWindowAlpha as String] as? NSNumber)?.doubleValue,
+                  alpha > 0.01,
+                  let boundsDict = info[kCGWindowBounds as String] as? NSDictionary,
+                  let bounds = CGRect(dictionaryRepresentation: boundsDict),
+                  bounds.width >= 50,
+                  bounds.height >= 50 else {
+                continue
+            }
+            globalCount += 1
+            if let windowNumber = (info[kCGWindowNumber as String] as? NSNumber)?.intValue,
+               onScreenIDs.contains(windowNumber) {
+                onScreenCount += 1
+            }
+        }
+        return (globalCount, onScreenCount)
+    }
+
+    static func pressDockItem(for bundleURL: URL, dockPID: pid_t? = nil) -> Bool {
+        guard let pid = dockPID ?? NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.dock").first?.processIdentifier else {
+            return false
+        }
+        let targetURL = bundleURL.standardizedFileURL
+        let root = AXUIElementCreateApplication(pid)
+        AXUIElementSetMessagingTimeout(root, 0.08)
+        guard let roots = value(root, kAXChildrenAttribute) as? [AXUIElement],
+              let list = roots.first(where: { string($0, kAXRoleAttribute) == kAXListRole }),
+              let items = value(list, kAXChildrenAttribute) as? [AXUIElement] else {
+            return false
+        }
+        for item in items {
+            guard string(item, kAXSubroleAttribute) == "AXApplicationDockItem",
+                  let url = value(item, kAXURLAttribute) as? URL,
+                  url.standardizedFileURL == targetURL else {
+                continue
+            }
+            return AXUIElementPerformAction(item, kAXPressAction as CFString) == .success
+        }
+        return false
     }
 }

@@ -18,6 +18,9 @@ final class PreferencesTests: XCTestCase {
         XCTAssertTrue(preferences.windowSelectionEnabled)
         XCTAssertEqual(preferences.triggerMode, .multipleWindows)
         XCTAssertTrue(preferences.minimizeActiveSingleWindow)
+        XCTAssertTrue(preferences.cmdTabRestoreMinimized)
+        XCTAssertEqual(preferences.cmdTabMultiMinimizedBehavior, .showPicker)
+        XCTAssertTrue(preferences.cmdTabReopenEmptyApp)
         XCTAssertEqual(preferences.appearance.preset, .glass)
         XCTAssertEqual(preferences.appearance.size, .compact)
         XCTAssertEqual(preferences.appearance.opacity, 1.0)
@@ -113,6 +116,9 @@ final class PreferencesTests: XCTestCase {
             preferences.windowSelectionEnabled = true
             preferences.triggerMode = .anyWindow
             preferences.minimizeActiveSingleWindow = false
+            preferences.cmdTabRestoreMinimized = false
+            preferences.cmdTabMultiMinimizedBehavior = .restoreRecent
+            preferences.cmdTabReopenEmptyApp = false
             preferences.appearance.preset = .accent
             preferences.appearance.size = .standard
             preferences.appearance.opacity = 0.72
