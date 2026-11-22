@@ -12,22 +12,16 @@
 
 ## 界面与效果
 
-### 程序坞角标与 4 套原生外观（浅色 / 深色桌面实拍）
+### 程序坞角标
 
 <p align="center">
   <img src="assets/01-dock-badges.png" width="760" alt="DockCounts 浅色与深色默认壁纸液态玻璃 Dock 与 4 套角标样式实拍对比">
 </p>
 
-### 点按窗口清单与核心交互
+### 窗口选择增强
 
 <p align="center">
   <img src="assets/02-window-picker.png" width="760" alt="DockCounts 点按 Dock 弹出液态玻璃窗口选择菜单与核心交互说明">
-</p>
-
-### 原生设置窗口（通用 + 外观与实时模拟 Dock）
-
-<p align="center">
-  <img src="assets/03-settings.png" width="760" alt="DockCounts 通用设置与外观与菜单双窗并排预览">
 </p>
 
 ## 解决什么痛点
