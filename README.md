@@ -8,21 +8,11 @@
   补齐 macOS 程序坞（Dock）与 <code>⌘Tab</code> 的切窗短板：多窗口点按精准选窗、前台单窗口再次点按即最小化、轻量角标按需显示窗口与最小化数、<code>⌘Tab</code> 切到已最小化或零窗口应用自动恢复 / 新建。
 </p>
 
+<p align="center">
+  <img src="assets/showcase.png" width="840" alt="DockCounts 浅色与深色桌面液态玻璃程序坞、角标与窗口选择菜单">
+</p>
+
 ---
-
-## 界面与效果
-
-### 程序坞角标
-
-<p align="center">
-  <img src="assets/01-dock-badges.png" width="760" alt="DockCounts 浅色与深色默认壁纸液态玻璃 Dock 与 4 套角标样式实拍对比">
-</p>
-
-### 窗口选择增强
-
-<p align="center">
-  <img src="assets/02-window-picker.png" width="760" alt="DockCounts 点按 Dock 弹出液态玻璃窗口选择菜单与核心交互说明">
-</p>
 
 ## 解决什么痛点
 
