@@ -109,7 +109,12 @@ struct CountBadge: View {
         .shadow(color: .black.opacity(isDark ? 0.32 : 0.14), radius: 1.4, y: 0.5)
         .padding(1)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("共 \(counts.total) 个窗口，已最小化 \(counts.minimized) 个")
+        .accessibilityLabel(
+            L10n.t(
+                "共 \(counts.total) 个窗口，已最小化 \(counts.minimized) 个",
+                "\(counts.total) windows, \(counts.minimized) minimized"
+            )
+        )
     }
 
     private func textColors(isDark: Bool) -> (Color, Color) {

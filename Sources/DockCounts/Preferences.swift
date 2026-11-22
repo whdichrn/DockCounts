@@ -10,16 +10,30 @@ enum WindowTriggerMode: String, Codable, CaseIterable, Identifiable {
     case anyWindow
 
     var id: String { rawValue }
-    var title: String {
+    var title: String { title(in: L10n.currentLanguage) }
+    var summary: String { summary(in: L10n.currentLanguage) }
+
+    func title(in language: AppLanguage) -> String {
         switch self {
-        case .multipleWindows: return "仅多窗口"
-        case .anyWindow: return "含单窗口"
+        case .multipleWindows: return L10n.t("仅多窗口", "Multiple", language)
+        case .anyWindow: return L10n.t("含单窗口", "Any Window", language)
         }
     }
-    var summary: String {
+
+    func summary(in language: AppLanguage) -> String {
         switch self {
-        case .multipleWindows: return "仅在应用有多个窗口时弹出选择菜单，单窗口保留系统原样切回或恢复。"
-        case .anyWindow: return "只要应用存在窗口，点按即弹出选择菜单。"
+        case .multipleWindows:
+            return L10n.t(
+                "仅在应用有多个窗口时弹出选择菜单，单窗口保留系统原样切回或恢复。",
+                "Show the window menu only when an app has multiple windows; single windows keep native Dock behavior.",
+                language
+            )
+        case .anyWindow:
+            return L10n.t(
+                "只要应用存在窗口，点按即弹出选择菜单。",
+                "Show the window menu whenever an app has at least one window.",
+                language
+            )
         }
     }
 }
@@ -30,11 +44,13 @@ enum BadgeVisibilityMode: String, Codable, CaseIterable, Identifiable {
     case always
 
     var id: String { rawValue }
-    var title: String {
+    var title: String { title(in: L10n.currentLanguage) }
+
+    func title(in language: AppLanguage) -> String {
         switch self {
-        case .smart: return "智能显示"
-        case .minimizedOnly: return "仅含最小化"
-        case .always: return "始终显示"
+        case .smart: return L10n.t("智能显示", "Smart", language)
+        case .minimizedOnly: return L10n.t("仅含最小化", "Minimized", language)
+        case .always: return L10n.t("始终显示", "Always", language)
         }
     }
 
@@ -54,12 +70,14 @@ enum BadgePreset: String, Codable, CaseIterable, Identifiable {
     case accent
 
     var id: String { rawValue }
-    var title: String {
+    var title: String { title(in: L10n.currentLanguage) }
+
+    func title(in language: AppLanguage) -> String {
         switch self {
-        case .glass: return "系统玻璃"
-        case .frosted: return "柔和磨砂"
-        case .solid: return "高对比纯色"
-        case .accent: return "系统主题色"
+        case .glass: return L10n.t("系统玻璃", "Liquid Glass", language)
+        case .frosted: return L10n.t("柔和磨砂", "Soft Frosted", language)
+        case .solid: return L10n.t("高对比纯色", "High Contrast", language)
+        case .accent: return L10n.t("系统主题色", "Accent Color", language)
         }
     }
 }
@@ -69,10 +87,12 @@ enum BadgeSize: String, Codable, CaseIterable, Identifiable {
     case standard
 
     var id: String { rawValue }
-    var title: String {
+    var title: String { title(in: L10n.currentLanguage) }
+
+    func title(in language: AppLanguage) -> String {
         switch self {
-        case .compact: return "紧凑"
-        case .standard: return "标准"
+        case .compact: return L10n.t("紧凑", "Compact", language)
+        case .standard: return L10n.t("标准", "Standard", language)
         }
     }
 }
@@ -83,11 +103,13 @@ enum AppAppearanceMode: String, Codable, CaseIterable, Identifiable {
     case dark
 
     var id: String { rawValue }
-    var title: String {
+    var title: String { title(in: L10n.currentLanguage) }
+
+    func title(in language: AppLanguage) -> String {
         switch self {
-        case .system: return "跟随系统"
-        case .light: return "浅色"
-        case .dark: return "深色"
+        case .system: return L10n.t("跟随系统", "System", language)
+        case .light: return L10n.t("浅色", "Light", language)
+        case .dark: return L10n.t("深色", "Dark", language)
         }
     }
     var nsAppearance: NSAppearance? {
@@ -176,10 +198,12 @@ enum CmdTabMultiMinimizedBehavior: String, Codable, CaseIterable, Identifiable {
     case restoreRecent
 
     var id: String { rawValue }
-    var title: String {
+    var title: String { title(in: L10n.currentLanguage) }
+
+    func title(in language: AppLanguage) -> String {
         switch self {
-        case .showPicker: return "弹出窗口菜单"
-        case .restoreRecent: return "恢复最近窗口"
+        case .showPicker: return L10n.t("弹出窗口菜单", "Window Menu", language)
+        case .restoreRecent: return L10n.t("恢复最近窗口", "Restore Recent", language)
         }
     }
 }
@@ -199,17 +223,20 @@ struct AppPreferences: Codable, Equatable {
     var windowSelectionEnabled = true
     var triggerMode: WindowTriggerMode = .multipleWindows
     var minimizeActiveSingleWindow = true
+    var secondClickRunsNativeAction = true
     var cmdTabRestoreMinimized = true
     var cmdTabMultiMinimizedBehavior: CmdTabMultiMinimizedBehavior = .showPicker
     var cmdTabReopenEmptyApp = true
     var appearanceMode: AppAppearanceMode = .system
+    var language: AppLanguage = .system
     var appearance = BadgeAppearance()
 
     init() {}
 
     private enum CodingKeys: String, CodingKey {
         case enabled, badgesEnabled, badgeVisibility, windowSelectionEnabled, triggerMode, minimizeActiveSingleWindow
-        case cmdTabRestoreMinimized, cmdTabMultiMinimizedBehavior, cmdTabReopenEmptyApp, appearanceMode, appearance
+        case secondClickRunsNativeAction
+        case cmdTabRestoreMinimized, cmdTabMultiMinimizedBehavior, cmdTabReopenEmptyApp, appearanceMode, language, appearance
         case selectSingleWindow
     }
 
@@ -226,10 +253,12 @@ struct AppPreferences: Codable, Equatable {
             triggerMode = legacySingle ? .anyWindow : .multipleWindows
         }
         minimizeActiveSingleWindow = try c.decodeIfPresent(Bool.self, forKey: .minimizeActiveSingleWindow) ?? minimizeActiveSingleWindow
+        secondClickRunsNativeAction = try c.decodeIfPresent(Bool.self, forKey: .secondClickRunsNativeAction) ?? secondClickRunsNativeAction
         cmdTabRestoreMinimized = try c.decodeIfPresent(Bool.self, forKey: .cmdTabRestoreMinimized) ?? cmdTabRestoreMinimized
         cmdTabMultiMinimizedBehavior = try c.decodeIfPresent(CmdTabMultiMinimizedBehavior.self, forKey: .cmdTabMultiMinimizedBehavior) ?? cmdTabMultiMinimizedBehavior
         cmdTabReopenEmptyApp = try c.decodeIfPresent(Bool.self, forKey: .cmdTabReopenEmptyApp) ?? cmdTabReopenEmptyApp
         appearanceMode = try c.decodeIfPresent(AppAppearanceMode.self, forKey: .appearanceMode) ?? appearanceMode
+        language = try c.decodeIfPresent(AppLanguage.self, forKey: .language) ?? language
         appearance = (try? c.decodeIfPresent(BadgeAppearance.self, forKey: .appearance)) ?? appearance
     }
 
@@ -241,10 +270,12 @@ struct AppPreferences: Codable, Equatable {
         try c.encode(windowSelectionEnabled, forKey: .windowSelectionEnabled)
         try c.encode(triggerMode, forKey: .triggerMode)
         try c.encode(minimizeActiveSingleWindow, forKey: .minimizeActiveSingleWindow)
+        try c.encode(secondClickRunsNativeAction, forKey: .secondClickRunsNativeAction)
         try c.encode(cmdTabRestoreMinimized, forKey: .cmdTabRestoreMinimized)
         try c.encode(cmdTabMultiMinimizedBehavior, forKey: .cmdTabMultiMinimizedBehavior)
         try c.encode(cmdTabReopenEmptyApp, forKey: .cmdTabReopenEmptyApp)
         try c.encode(appearanceMode, forKey: .appearanceMode)
+        try c.encode(language, forKey: .language)
         try c.encode(appearance.normalized(), forKey: .appearance)
     }
 
@@ -328,5 +359,8 @@ final class PreferencesStore {
 enum ProjectLinks {
     static let home = URL(string: "https://github.com/whdichrn/DockCounts")!
     static let releases = home.appendingPathComponent("releases")
-    static var version: String { Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "开发构建" }
+    static var version: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
+            ?? L10n.t("开发构建", "Dev Build")
+    }
 }

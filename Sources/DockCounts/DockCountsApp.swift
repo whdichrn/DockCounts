@@ -14,11 +14,11 @@ struct DockCountsApp: App {
         .menuBarExtraStyle(.menu)
         .commands {
             CommandGroup(replacing: .appSettings) {
-                Button("设置…") { delegate.controller.showSettings() }
+                Button(L10n.t("设置…", "Settings…", delegate.controller.preferences.language)) { delegate.controller.showSettings() }
                     .keyboardShortcut(",")
             }
             CommandGroup(replacing: .appInfo) {
-                Button("关于 DockCounts…", action: delegate.controller.showAbout)
+                Button(L10n.t("关于 DockCounts…", "About DockCounts…", delegate.controller.preferences.language), action: delegate.controller.showAbout)
             }
         }
     }
@@ -60,21 +60,22 @@ struct StatusMenuView: View {
     @ObservedObject var controller: AppController
 
     var body: some View {
+        let lang = controller.preferences.language
         Text(controller.message)
         if !controller.trusted && controller.preferences.needsAnyService {
-            Button("授权辅助功能…", action: controller.requestPermission)
+            Button(L10n.t("授权辅助功能…", "Grant Accessibility…", lang), action: controller.requestPermission)
         }
         Divider()
-        Toggle("启用 DockCounts", isOn: $controller.preferences.enabled)
-        Toggle("显示 Dock 角标", isOn: $controller.preferences.badgesEnabled)
-        Toggle("点按选择窗口", isOn: $controller.preferences.windowSelectionEnabled)
-        Toggle("⌘Tab 切换增强", isOn: cmdTabBinding)
+        Toggle(L10n.t("启用 DockCounts", "Enable DockCounts", lang), isOn: $controller.preferences.enabled)
+        Toggle(L10n.t("显示 Dock 角标", "Show Dock Badges", lang), isOn: $controller.preferences.badgesEnabled)
+        Toggle(L10n.t("点按选择窗口", "Click Dock to Pick Window", lang), isOn: $controller.preferences.windowSelectionEnabled)
+        Toggle(L10n.t("⌘Tab 切换增强", "⌘Tab Switch Enhancement", lang), isOn: cmdTabBinding)
         Divider()
-        Button("设置…") { controller.showSettings() }
+        Button(L10n.t("设置…", "Settings…", lang)) { controller.showSettings() }
             .keyboardShortcut(",")
-        Button("关于 DockCounts…", action: controller.showAbout)
+        Button(L10n.t("关于 DockCounts…", "About DockCounts…", lang), action: controller.showAbout)
         Divider()
-        Button("退出 DockCounts") { NSApp.terminate(nil) }
+        Button(L10n.t("退出 DockCounts", "Quit DockCounts", lang)) { NSApp.terminate(nil) }
             .keyboardShortcut("q")
     }
 

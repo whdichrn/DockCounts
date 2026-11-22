@@ -125,7 +125,7 @@ enum AX {
             if !minimized, let rect = frame(element), rect.width < 2 || rect.height < 2 {
                 return nil
             }
-            let title = string(element, kAXTitleAttribute).flatMap { $0.isEmpty ? nil : $0 } ?? "未命名窗口"
+            let title = string(element, kAXTitleAttribute).flatMap { $0.isEmpty ? nil : $0 } ?? L10n.t("未命名窗口", "Untitled Window")
             let isMainAttr = value(element, kAXMainAttribute) as? Bool ?? false
             let isMain = isMainAttr || (mainWindow.map { CFEqual($0, element) } ?? false)
             let isFullScreen = (value(element, "AXFullScreen") as? Bool) ?? false
@@ -201,7 +201,7 @@ enum AX {
             return DockEntry(
                 pid: pids[0],
                 pids: pids,
-                name: string(item, kAXTitleAttribute) ?? "应用",
+                name: string(item, kAXTitleAttribute) ?? L10n.t("应用", "App"),
                 url: url.standardizedFileURL,
                 frame: itemFrame,
                 windows: windowProvider(pids)

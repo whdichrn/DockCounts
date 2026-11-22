@@ -11,10 +11,13 @@ final class ClickInterceptor {
     }
     var onClick: ((DockEntry, CGPoint) -> Void)?
     var onPointerDown: ((CGPoint) -> Void)?
+    var dismissOnlyRect: CGRect?
+    var onDismissOnlyClick: (() -> Void)?
 
     private var tap: CFMachPort?
     private var source: CFRunLoopSource?
     private var pending: (entry: DockEntry, down: CGEvent)?
+    private var consumingDismissClick = false
 
     init() {
         hitTest = { _, _ in nil }
@@ -48,6 +51,8 @@ final class ClickInterceptor {
     func stop() {
         if let pending { pending.down.post(tap: .cgSessionEventTap) }
         pending = nil
+        consumingDismissClick = false
+        dismissOnlyRect = nil
         if let tap { CFMachPortInvalidate(tap) }
         if let source { CFRunLoopRemoveSource(CFRunLoopGetMain(), source, .commonModes) }
         tap = nil
@@ -58,8 +63,29 @@ final class ClickInterceptor {
     func handle(_ proxy: CGEventTapProxy?, _ type: CGEventType, _ event: CGEvent) -> Unmanaged<CGEvent>? {
         if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
             pending = nil
+            consumingDismissClick = false
             if let tap { CGEvent.tapEnable(tap: tap, enable: true) }
             return Unmanaged.passUnretained(event)
+        }
+
+        if consumingDismissClick {
+            if type == .leftMouseDragged {
+                return nil
+            }
+            if type == .leftMouseUp {
+                consumingDismissClick = false
+                return nil
+            }
+        }
+
+        let modifiers: CGEventFlags = [.maskCommand, .maskControl, .maskAlternate, .maskShift]
+        if type == .leftMouseDown,
+           let dismissOnlyRect,
+           event.flags.intersection(modifiers).isEmpty,
+           dismissOnlyRect.contains(event.location) {
+            consumingDismissClick = true
+            DispatchQueue.main.async { [weak self] in self?.onDismissOnlyClick?() }
+            return nil
         }
 
         if [.leftMouseDown, .rightMouseDown, .otherMouseDown].contains(type), onPointerDown != nil {
@@ -68,7 +94,6 @@ final class ClickInterceptor {
         }
 
         if type == .leftMouseDown {
-            let modifiers: CGEventFlags = [.maskCommand, .maskControl, .maskAlternate, .maskShift]
             guard event.flags.intersection(modifiers).isEmpty,
                   entries.contains(where: { $0.frame.insetBy(dx: -100, dy: -100).contains(event.location) }),
                   let entry = hitTest(event.location, entries),

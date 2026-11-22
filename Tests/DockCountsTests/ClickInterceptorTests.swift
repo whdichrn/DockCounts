@@ -159,4 +159,36 @@ final class ClickInterceptorTests: XCTestCase {
         XCTAssertTrue(interceptor.handle(proxy, .leftMouseDown, event(.leftMouseDown)) != nil)
         XCTAssertTrue(interceptor.handle(proxy, .leftMouseUp, event(.leftMouseUp)) != nil)
     }
+
+    func testDismissOnlyRectConsumesSecondClickOnSameIconAndPassesOutsideClicks() {
+        let interceptor = makeInterceptor(total: 3)
+        interceptor.entries = [] // Picker open clears regular click interception.
+        interceptor.dismissOnlyRect = CGRect(x: 10, y: 50, width: 40, height: 40)
+
+        let dismissed = expectation(description: "dismiss-only second click")
+        var dismissCount = 0
+        interceptor.onDismissOnlyClick = {
+            dismissCount += 1
+            dismissed.fulfill()
+        }
+
+        var outsidePoints: [CGPoint] = []
+        interceptor.onPointerDown = { outsidePoints.append($0) }
+
+        XCTAssertNil(interceptor.handle(proxy, .leftMouseDown, event(.leftMouseDown, 25, 65)))
+        XCTAssertNil(interceptor.handle(proxy, .leftMouseDragged, event(.leftMouseDragged, 28, 66)))
+        XCTAssertNil(interceptor.handle(proxy, .leftMouseUp, event(.leftMouseUp, 28, 66)))
+        wait(for: [dismissed], timeout: 1)
+        XCTAssertEqual(dismissCount, 1)
+        XCTAssertTrue(outsidePoints.isEmpty)
+
+        // Modified click inside dismiss rect passes through untouched.
+        let cmdDown = event(.leftMouseDown, 25, 65)
+        cmdDown.flags = .maskCommand
+        XCTAssertNotNil(interceptor.handle(proxy, .leftMouseDown, cmdDown))
+
+        // Click outside the anchored Dock icon passes through cleanly.
+        XCTAssertNotNil(interceptor.handle(proxy, .leftMouseDown, event(.leftMouseDown, 300, 300)))
+        XCTAssertNotNil(interceptor.handle(proxy, .leftMouseUp, event(.leftMouseUp, 300, 300)))
+    }
 }

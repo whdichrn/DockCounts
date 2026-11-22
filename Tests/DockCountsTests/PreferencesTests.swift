@@ -18,10 +18,12 @@ final class PreferencesTests: XCTestCase {
         XCTAssertTrue(preferences.windowSelectionEnabled)
         XCTAssertEqual(preferences.triggerMode, .multipleWindows)
         XCTAssertTrue(preferences.minimizeActiveSingleWindow)
+        XCTAssertTrue(preferences.secondClickRunsNativeAction)
         XCTAssertTrue(preferences.cmdTabRestoreMinimized)
         XCTAssertEqual(preferences.cmdTabMultiMinimizedBehavior, .showPicker)
         XCTAssertTrue(preferences.cmdTabReopenEmptyApp)
         XCTAssertEqual(preferences.appearanceMode, .system)
+        XCTAssertEqual(preferences.language, .system)
         XCTAssertEqual(preferences.appearance.preset, .glass)
         XCTAssertEqual(preferences.appearance.size, .compact)
         XCTAssertEqual(preferences.appearance.opacity, 1.0)
@@ -104,7 +106,9 @@ final class PreferencesTests: XCTestCase {
             defaults.set(Data(legacyJSON.utf8), forKey: PreferencesStore.key)
             let migrated = store.load()
             XCTAssertEqual(migrated.triggerMode, .anyWindow)
+            XCTAssertTrue(migrated.secondClickRunsNativeAction)
             XCTAssertEqual(migrated.appearanceMode, .system)
+            XCTAssertEqual(migrated.language, .system)
             XCTAssertEqual(migrated.appearance.preset, .solid)
             XCTAssertEqual(migrated.appearance.opacity, 0.4)
         }
@@ -119,10 +123,12 @@ final class PreferencesTests: XCTestCase {
             preferences.windowSelectionEnabled = true
             preferences.triggerMode = .anyWindow
             preferences.minimizeActiveSingleWindow = false
+            preferences.secondClickRunsNativeAction = false
             preferences.cmdTabRestoreMinimized = false
             preferences.cmdTabMultiMinimizedBehavior = .restoreRecent
             preferences.cmdTabReopenEmptyApp = false
             preferences.appearanceMode = .dark
+            preferences.language = .en
             preferences.appearance.preset = .accent
             preferences.appearance.size = .standard
             preferences.appearance.opacity = 0.72
@@ -142,6 +148,16 @@ final class PreferencesTests: XCTestCase {
 
         XCTAssertEqual(AppAppearanceMode.dark.nsAppearance?.name, .darkAqua)
         XCTAssertEqual(AppAppearanceMode.dark.preferredColorScheme, .dark)
+    }
+
+    func testAppLanguageResolution() {
+        XCTAssertEqual(AppLanguage.system.resolve(preferredLanguages: ["zh-Hans-CN", "en-US"]), .zhHans)
+        XCTAssertEqual(AppLanguage.system.resolve(preferredLanguages: ["zh-Hant-TW"]), .zhHans)
+        XCTAssertEqual(AppLanguage.system.resolve(preferredLanguages: ["en-US", "zh-Hans-CN"]), .en)
+        XCTAssertEqual(AppLanguage.zhHans.resolve(preferredLanguages: ["en-US"]), .zhHans)
+        XCTAssertEqual(AppLanguage.en.resolve(preferredLanguages: ["zh-Hans-CN"]), .en)
+        XCTAssertEqual(AppLanguage.system.title(in: .zhHans), "跟随系统")
+        XCTAssertEqual(AppLanguage.system.title(in: .en), "System")
     }
 
     func testIncompleteOrDamagedSettingsHaveSafeDefaultsAndClampValues() {

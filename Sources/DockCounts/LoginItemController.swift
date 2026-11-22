@@ -5,12 +5,14 @@ import ServiceManagement
 enum LoginItemState: Equatable {
     case notRegistered, enabled, requiresApproval, notFound
     var isRequested: Bool { self == .enabled || self == .requiresApproval }
-    var message: String {
+    var message: String { message() }
+
+    func message(in language: AppLanguage? = nil) -> String {
         switch self {
-        case .notRegistered: return "未开启开机启动"
-        case .enabled: return "已开启，登录 Mac 后自动运行"
-        case .requiresApproval: return "已登记，等待在系统登录项中允许"
-        case .notFound: return "请从固定安装位置启动应用后再设置"
+        case .notRegistered: return L10n.t("未开启开机启动", "Disabled at login", language)
+        case .enabled: return L10n.t("已开启，登录 Mac 后自动运行", "Enabled, starts automatically on login", language)
+        case .requiresApproval: return L10n.t("已登记，等待在系统登录项中允许", "Registered, pending approval in System Settings", language)
+        case .notFound: return L10n.t("请从固定安装位置启动应用后再设置", "Launch the app from /Applications to configure", language)
         }
     }
 }
@@ -45,7 +47,7 @@ final class LoginItemController: ObservableObject {
     func setEnabled(_ enabled: Bool) {
         error = nil
         do { try service.setEnabled(enabled) }
-        catch { self.error = "无法更新开机启动：\(error.localizedDescription)" }
+        catch { self.error = L10n.t("无法更新开机启动：", "Unable to update login item: ") + error.localizedDescription }
         refresh()
     }
     func openSystemSettings() { SMAppService.openSystemSettingsLoginItems() }

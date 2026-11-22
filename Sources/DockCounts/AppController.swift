@@ -5,13 +5,19 @@ import ApplicationServices
 final class AppController: NSObject, ObservableObject {
     private let store: PreferencesStore
     let login: LoginItemController
+    let updater = UpdateChecker()
 
     @Published var preferences: AppPreferences {
         didSet {
             store.save(preferences)
+            if oldValue.language != preferences.language {
+                L10n.currentLanguage = preferences.language
+                settingsWindow?.title = L10n.t("DockCounts 设置", "DockCounts Settings", preferences.language)
+            }
             if !preferences.enabled || !preferences.windowSelectionEnabled {
                 picker.dismiss(notify: false)
                 menuOpen = false
+                clicks.dismissOnlyRect = nil
                 clicks.stop()
                 intercepting = false
             }
@@ -22,6 +28,11 @@ final class AppController: NSObject, ObservableObject {
                 || oldValue.minimizeActiveSingleWindow != preferences.minimizeActiveSingleWindow {
                 picker.dismiss(notify: false)
                 menuOpen = false
+                clicks.dismissOnlyRect = nil
+            }
+            if oldValue.secondClickRunsNativeAction != preferences.secondClickRunsNativeAction,
+               preferences.secondClickRunsNativeAction {
+                clicks.dismissOnlyRect = nil
             }
             if oldValue.appearanceMode != preferences.appearanceMode {
                 applyAppearanceMode()
@@ -31,7 +42,8 @@ final class AppController: NSObject, ObservableObject {
                 || oldValue.badgesEnabled != preferences.badgesEnabled
                 || oldValue.windowSelectionEnabled != preferences.windowSelectionEnabled
                 || oldValue.cmdTabRestoreMinimized != preferences.cmdTabRestoreMinimized
-                || oldValue.cmdTabReopenEmptyApp != preferences.cmdTabReopenEmptyApp {
+                || oldValue.cmdTabReopenEmptyApp != preferences.cmdTabReopenEmptyApp
+                || oldValue.language != preferences.language {
                 refresh(force: true)
             }
         }
@@ -79,7 +91,10 @@ final class AppController: NSObject, ObservableObject {
     init(store: PreferencesStore = PreferencesStore(), login: LoginItemController = LoginItemController()) {
         self.store = store
         self.login = login
-        preferences = store.load()
+        let loaded = store.load()
+        preferences = loaded
+        L10n.currentLanguage = loaded.language
+        message = L10n.t("正在检查权限…", "Checking permissions…", loaded.language)
         super.init()
 
         clicks.shouldIntercept = { [weak self] entry in
@@ -91,8 +106,10 @@ final class AppController: NSObject, ObservableObject {
         }
         clicks.onClick = { [weak self] entry, point in self?.showWindows(entry, at: point) }
         clicks.onPointerDown = { [weak self] point in self?.picker.dismissIfOutside(at: point) }
+        clicks.onDismissOnlyClick = { [weak self] in self?.picker.dismiss() }
         picker.onDismiss = { [weak self] in
             self?.menuOpen = false
+            self?.clicks.dismissOnlyRect = nil
             self?.refresh(force: true)
         }
         switchEnhancer.onCmdTabActivated = { [weak self] app, spaceChanged in
@@ -141,7 +158,7 @@ final class AppController: NSObject, ObservableObject {
                 backing: .buffered,
                 defer: false
             )
-            window.title = "DockCounts 设置"
+            window.title = L10n.t("DockCounts 设置", "DockCounts Settings", preferences.language)
             window.collectionBehavior = [.fullScreenNone]
             window.standardWindowButton(.miniaturizeButton)?.isHidden = true
             window.standardWindowButton(.zoomButton)?.isHidden = true
@@ -155,6 +172,7 @@ final class AppController: NSObject, ObservableObject {
             resizeSettingsWindow(animated: false)
             window.center()
         } else {
+            settingsWindow?.title = L10n.t("DockCounts 设置", "DockCounts Settings", preferences.language)
             settingsWindow?.appearance = preferences.appearanceMode.nsAppearance
             resizeSettingsWindow(animated: false)
         }
@@ -209,6 +227,7 @@ final class AppController: NSObject, ObservableObject {
         switchEnhancer.stop()
         picker.dismiss(notify: false)
         menuOpen = false
+        clicks.dismissOnlyRect = nil
         clicks.stop()
         badges.reset()
     }
@@ -231,11 +250,18 @@ final class AppController: NSObject, ObservableObject {
             nextPermissionPoll = now.addingTimeInterval(1)
         }
 
+        let lang = preferences.language
         guard preferences.needsAnyService && trusted else {
             events.stop()
             switchEnhancer.stop()
             deactivateDockTrackingIfNeeded()
-            setMessage(!preferences.enabled ? "已暂停" : !preferences.needsAnyService ? "所有功能均已关闭" : "需要辅助功能权限")
+            setMessage(
+                !preferences.enabled
+                    ? L10n.t("已暂停", "Paused", lang)
+                    : !preferences.needsAnyService
+                        ? L10n.t("所有功能均已关闭", "All features disabled", lang)
+                        : L10n.t("需要辅助功能权限", "Accessibility permission required", lang)
+            )
             rescheduleTimer(interval: 1.0)
             return
         }
@@ -249,7 +275,7 @@ final class AppController: NSObject, ObservableObject {
         guard preferences.needsDock else {
             events.stop()
             deactivateDockTrackingIfNeeded()
-            setMessage("运行中 · 仅 ⌘Tab 增强")
+            setMessage(L10n.t("运行中 · 仅 ⌘Tab 增强", "Running · ⌘Tab only", lang))
             rescheduleTimer(interval: 1.0)
             return
         }
@@ -268,13 +294,13 @@ final class AppController: NSObject, ObservableObject {
         }
 
         var parts: [String] = []
-        if preferences.badgesEnabled { parts.append("角标") }
-        if preferences.windowSelectionEnabled { parts.append("点按选窗") }
+        if preferences.badgesEnabled { parts.append(L10n.t("角标", "Badges", lang)) }
+        if preferences.windowSelectionEnabled { parts.append(L10n.t("点按选窗", "Click Picker", lang)) }
         if preferences.needsCmdTabEnhancer { parts.append("⌘Tab") }
         setMessage(
             preferences.windowSelectionEnabled && !intercepting
-                ? "无法接管点按，请在授权后重新启动"
-                : "运行中 · " + parts.joined(separator: " / ")
+                ? L10n.t("无法接管点按，请在授权后重新启动", "Unable to intercept clicks; relaunch after granting permission", lang)
+                : L10n.t("运行中 · ", "Running · ", lang) + parts.joined(separator: " / ")
         )
 
         let token = generation
@@ -521,6 +547,7 @@ final class AppController: NSObject, ObservableObject {
         servicesActive = false
         picker.dismiss(notify: false)
         menuOpen = false
+        clicks.dismissOnlyRect = nil
         badges.hide()
         clicks.stop()
         intercepting = false
@@ -544,7 +571,7 @@ final class AppController: NSObject, ObservableObject {
         }
         let pidSet = Set(pids)
         let isRegular = app.activationPolicy == .regular
-        let appName = app.localizedName ?? "应用"
+        let appName = app.localizedName ?? L10n.t("应用", "App", preferences.language)
         let bundleURL = app.bundleURL
         let knownDockPID = dockPID
 
@@ -614,6 +641,7 @@ final class AppController: NSObject, ObservableObject {
     ) {
         let fallbackPID = pids.first ?? 0
         clicks.entries = []
+        clicks.dismissOnlyRect = (!preferences.secondClickRunsNativeAction) ? anchorIcon : nil
         menuOpen = true
 
         picker.onChoose = { [weak self] window in
@@ -622,7 +650,11 @@ final class AppController: NSObject, ObservableObject {
             if WindowActivator.activate(pid: targetPID, window: window) {
                 self.markUnminimizedInCache(pid: targetPID, element: window.element)
             } else {
-                self.message = "该窗口已关闭或应用暂时没有响应"
+                self.message = L10n.t(
+                    "该窗口已关闭或应用暂时没有响应",
+                    "That window is closed or the app is not responding",
+                    self.preferences.language
+                )
             }
             self.inventoryRevision += 1
             self.nextInventoryPoll = .distantPast

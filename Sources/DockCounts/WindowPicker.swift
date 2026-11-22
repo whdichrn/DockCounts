@@ -215,7 +215,11 @@ struct WindowPickerView: View {
                     Text(name)
                         .font(.system(size: 12, weight: .semibold))
                         .lineLimit(1)
-                    Text(minimizedCount > 0 ? "\(state.windows.count) 个 · \(minimizedCount) 已最小化" : "\(state.windows.count) 个窗口")
+                    Text(
+                        minimizedCount > 0
+                            ? L10n.t("\(state.windows.count) 个 · \(minimizedCount) 已最小化", "\(state.windows.count) total · \(minimizedCount) minimized")
+                            : L10n.t("\(state.windows.count) 个窗口", state.windows.count == 1 ? "1 window" : "\(state.windows.count) windows")
+                    )
                         .font(.system(size: 10.5))
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
@@ -228,7 +232,7 @@ struct WindowPickerView: View {
                         HStack(spacing: 3) {
                             Image(systemName: "macwindow.on.rectangle")
                                 .font(.system(size: 10.5))
-                            Text("展开全部")
+                            Text(L10n.t("展开全部", "Show All"))
                                 .font(.system(size: 10.5, weight: .medium))
                         }
                         .foregroundStyle(.secondary)
@@ -237,7 +241,7 @@ struct WindowPickerView: View {
                         .background(Color.primary.opacity(0.06), in: RoundedRectangle(cornerRadius: 5))
                     }
                     .buttonStyle(.plain)
-                    .help("展开并前置全部窗口")
+                    .help(L10n.t("展开并前置全部窗口", "Restore and bring all windows forward"))
                     .accessibilityIdentifier("picker-activate-all")
                 }
             }
@@ -250,7 +254,7 @@ struct WindowPickerView: View {
                 .padding(.horizontal, 4)
 
             if state.windows.isEmpty {
-                Text("没有可用窗口")
+                Text(L10n.t("没有可用窗口", "No windows available"))
                     .font(Font(NSFont.menuFont(ofSize: 0)))
                     .foregroundStyle(.secondary)
                     .padding(10)
@@ -263,7 +267,7 @@ struct WindowPickerView: View {
                             }
                             if !activeIndices.isEmpty && !minimizedIndices.isEmpty {
                                 HStack(spacing: 6) {
-                                    Text("已最小化")
+                                    Text(L10n.t("已最小化", "Minimized"))
                                         .font(.system(size: 10.5, weight: .medium))
                                         .foregroundStyle(.secondary)
                                     Rectangle()
@@ -317,7 +321,7 @@ struct WindowPickerView: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .accessibilityLabel(window.title + (window.minimized ? " — 已最小化" : ""))
+            .accessibilityLabel(window.title + (window.minimized ? L10n.t(" — 已最小化", " — Minimized") : ""))
             .accessibilityIdentifier("window-row-\(index)")
             .help(window.title)
 
@@ -333,7 +337,7 @@ struct WindowPickerView: View {
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
-                    .help(window.minimized ? "恢复窗口" : "最小化窗口")
+                    .help(window.minimized ? L10n.t("恢复窗口", "Restore Window") : L10n.t("最小化窗口", "Minimize Window"))
                     .accessibilityIdentifier("window-minimize-\(index)")
 
                     Button {
@@ -346,7 +350,7 @@ struct WindowPickerView: View {
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
-                    .help("关闭窗口")
+                    .help(L10n.t("关闭窗口", "Close Window"))
                     .accessibilityIdentifier("window-close-\(index)")
                 }
             } else if index < 9 {
