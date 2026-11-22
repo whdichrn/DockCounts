@@ -36,7 +36,7 @@
 
 ## 下载与安装
 
-1. 前往 [GitHub Releases](https://github.com/whdichrn/DockCounts/releases) 下载最新通用版压缩包 `DockCounts-0.5.1-universal.zip`（支持 Apple Silicon 与 Intel，系统要求 macOS 15+）。
+1. 前往 [GitHub Releases](https://github.com/whdichrn/DockCounts/releases) 下载最新通用版压缩包 `DockCounts-0.5.2-universal.zip`（支持 Apple Silicon 与 Intel，系统要求 macOS 15+）。
 2. 解压后将 `DockCounts.app` 拖入 `/Applications`（应用程序）目录并启动。
 3. 在 **系统设置 → 隐私与安全性 → 辅助功能** 中允许 `DockCounts`。
    > **提示**：公开下载包使用 ad-hoc 签名，跨版本覆盖升级后若系统提示未授权，请在辅助功能列表中移除旧记录并重新勾选 `/Applications/DockCounts.app`。从源码本地构建时脚本会自动使用本机开发证书签名，后续更新无需重复授权。

@@ -36,7 +36,7 @@
 
 ## Installation
 
-1. Download `DockCounts-0.5.1-universal.zip` (Apple Silicon & Intel, macOS 15+) from [GitHub Releases](https://github.com/whdichrn/DockCounts/releases).
+1. Download `DockCounts-0.5.2-universal.zip` (Apple Silicon & Intel, macOS 15+) from [GitHub Releases](https://github.com/whdichrn/DockCounts/releases).
 2. Extract and move `DockCounts.app` into `/Applications`, then launch it.
 3. Grant Accessibility access under **System Settings → Privacy & Security → Accessibility**.
    > **Note**: Release archives are ad-hoc signed. If macOS prompts for Accessibility again after replacing an older release build, remove the old entry in Accessibility settings and re-enable `/Applications/DockCounts.app`. Local builds from source automatically sign with an installed development certificate so future updates keep permissions.
