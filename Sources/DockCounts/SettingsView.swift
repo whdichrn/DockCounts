@@ -109,9 +109,9 @@ struct SettingsView: View {
                 .padding(.vertical, 12)
             }
 
-            SettingsCard(title: "Dock 左键点击") {
+            SettingsCard(title: "点按 Dock 图标") {
                 SettingsRow {
-                    Text("启用左键窗口选择")
+                    Text("点按图标选择窗口")
                     Spacer()
                     Toggle("", isOn: $controller.preferences.windowSelectionEnabled)
                         .labelsHidden()
@@ -135,7 +135,7 @@ struct SettingsView: View {
                 }
                 SettingsDivider()
                 SettingsRow {
-                    Text("前台单窗口再次点击时直接最小化")
+                    Text("前台单窗口再次点按时直接最小化")
                     Spacer()
                     Toggle("", isOn: $controller.preferences.minimizeActiveSingleWindow)
                         .labelsHidden()
@@ -144,7 +144,7 @@ struct SettingsView: View {
                         .accessibilityIdentifier("minimize-active-single-window")
                 }
                 SettingsDivider()
-                Text(controller.preferences.triggerMode.summary + (controller.preferences.minimizeActiveSingleWindow ? " 单窗口处于前台时再点直接最小化。" : ""))
+                Text(controller.preferences.triggerMode.summary + (controller.preferences.minimizeActiveSingleWindow ? " 单窗口处于前台时再次点按直接最小化。" : ""))
                     .font(.system(size: 11.5))
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, 14)
@@ -358,7 +358,7 @@ struct SettingsView: View {
                     .accessibilityIdentifier("app-version")
             }
 
-            Text("在 Dock 上看清窗口数量，左键精准选择与恢复窗口。")
+            Text("在 Dock 上看清窗口数量，点按精准选择与恢复窗口。")
                 .font(.system(size: 12.5))
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)

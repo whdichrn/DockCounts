@@ -67,7 +67,7 @@ struct StatusMenuView: View {
         Divider()
         Toggle("启用 DockCounts", isOn: $controller.preferences.enabled)
         Toggle("显示 Dock 角标", isOn: $controller.preferences.badgesEnabled)
-        Toggle("左键窗口选择", isOn: $controller.preferences.windowSelectionEnabled)
+        Toggle("点按选择窗口", isOn: $controller.preferences.windowSelectionEnabled)
         Toggle("⌘Tab 切换增强", isOn: cmdTabBinding)
         Divider()
         Button("设置…") { controller.showSettings() }

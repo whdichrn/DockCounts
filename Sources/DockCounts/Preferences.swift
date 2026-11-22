@@ -19,7 +19,7 @@ enum WindowTriggerMode: String, Codable, CaseIterable, Identifiable {
     var summary: String {
         switch self {
         case .multipleWindows: return "仅在应用有多个窗口时弹出选择菜单，单窗口保留系统原样切回或恢复。"
-        case .anyWindow: return "只要应用存在窗口，左键点击即弹出选择菜单。"
+        case .anyWindow: return "只要应用存在窗口，点按即弹出选择菜单。"
         }
     }
 }
@@ -32,7 +32,7 @@ enum BadgeVisibilityMode: String, Codable, CaseIterable, Identifiable {
     var id: String { rawValue }
     var title: String {
         switch self {
-        case .smart: return "智能降噪"
+        case .smart: return "智能显示"
         case .minimizedOnly: return "仅含最小化"
         case .always: return "始终显示"
         }

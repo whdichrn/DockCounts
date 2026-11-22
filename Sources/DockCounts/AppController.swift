@@ -263,11 +263,11 @@ final class AppController: NSObject, ObservableObject {
 
         var parts: [String] = []
         if preferences.badgesEnabled { parts.append("角标") }
-        if preferences.windowSelectionEnabled { parts.append("左键") }
+        if preferences.windowSelectionEnabled { parts.append("点按选窗") }
         if preferences.needsCmdTabEnhancer { parts.append("⌘Tab") }
         setMessage(
             preferences.windowSelectionEnabled && !intercepting
-                ? "无法接管点击，请在授权后重新启动"
+                ? "无法接管点按，请在授权后重新启动"
                 : "运行中 · " + parts.joined(separator: " / ")
         )
 
