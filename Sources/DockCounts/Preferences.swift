@@ -38,28 +38,60 @@ enum WindowTriggerMode: String, Codable, CaseIterable, Identifiable {
     }
 }
 
+struct BadgeDisplay: Equatable {
+    let showTotal: Bool
+    let showMinimized: Bool
+    var isVisible: Bool { showTotal || showMinimized }
+}
+
 enum BadgeVisibilityMode: String, Codable, CaseIterable, Identifiable {
-    case smart
-    case minimizedOnly
+    case auto
     case always
+    case hidden
 
     var id: String { rawValue }
     var title: String { title(in: L10n.currentLanguage) }
 
-    func title(in language: AppLanguage) -> String {
-        switch self {
-        case .smart: return L10n.t("智能显示", "Smart", language)
-        case .minimizedOnly: return L10n.t("仅含最小化", "Minimized", language)
-        case .always: return L10n.t("始终显示", "Always", language)
+    init(from decoder: Decoder) throws {
+        let raw = try decoder.singleValueContainer().decode(String.self)
+        switch raw {
+        case "auto", "smart":
+            self = .auto
+        case "always":
+            self = .always
+        case "hidden", "minimizedOnly":
+            self = .hidden
+        default:
+            throw DecodingError.dataCorrupted(
+                DecodingError.Context(codingPath: decoder.codingPath, debugDescription: "Unknown BadgeVisibilityMode: \(raw)")
+            )
         }
     }
 
-    func shouldShow(_ counts: WindowCounts) -> Bool {
+    func title(in language: AppLanguage) -> String {
         switch self {
-        case .smart: return counts.total > 1 || counts.minimized > 0
-        case .minimizedOnly: return counts.minimized > 0
-        case .always: return counts.total > 0
+        case .auto: return L10n.t("自动", "Auto", language)
+        case .always: return L10n.t("始终显示", "Always", language)
+        case .hidden: return L10n.t("不显示", "Hide", language)
         }
+    }
+
+    func display(for counts: WindowCounts) -> BadgeDisplay {
+        let showMinimized = counts.minimized > 0
+        let showTotal: Bool
+        switch self {
+        case .auto:
+            showTotal = counts.total > 0 && counts.minimized < counts.total
+        case .always:
+            showTotal = counts.total > 0
+        case .hidden:
+            showTotal = false
+        }
+        return BadgeDisplay(showTotal: showTotal, showMinimized: showMinimized)
+    }
+
+    func shouldShow(_ counts: WindowCounts) -> Bool {
+        display(for: counts).isVisible
     }
 }
 
@@ -219,7 +251,7 @@ enum CmdTabAction: Equatable {
 struct AppPreferences: Codable, Equatable {
     var enabled = true
     var badgesEnabled = true
-    var badgeVisibility: BadgeVisibilityMode = .smart
+    var badgeVisibility: BadgeVisibilityMode = .auto
     var windowSelectionEnabled = true
     var triggerMode: WindowTriggerMode = .multipleWindows
     var minimizeActiveSingleWindow = true

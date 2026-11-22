@@ -61,11 +61,13 @@ struct StatusMenuView: View {
 
     var body: some View {
         let lang = controller.preferences.language
-        Text(controller.message)
         if !controller.trusted && controller.preferences.needsAnyService {
             Button(L10n.t("授权辅助功能…", "Grant Accessibility…", lang), action: controller.requestPermission)
+            Divider()
+        } else if controller.preferences.enabled && controller.preferences.windowSelectionEnabled && !controller.intercepting && controller.trusted {
+            Text(controller.message)
+            Divider()
         }
-        Divider()
         Toggle(L10n.t("启用 DockCounts", "Enable DockCounts", lang), isOn: $controller.preferences.enabled)
         Toggle(L10n.t("显示 Dock 角标", "Show Dock Badges", lang), isOn: $controller.preferences.badgesEnabled)
         Toggle(L10n.t("点按选择窗口", "Click Dock to Pick Window", lang), isOn: $controller.preferences.windowSelectionEnabled)

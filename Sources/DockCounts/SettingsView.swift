@@ -325,9 +325,9 @@ struct SettingsView: View {
                 }
                 SettingsDivider()
                 SettingsRow {
-                    Text(L10n.t("显示时机", "Visibility", lang))
+                    Text(L10n.t("总窗口数", "Total Count", lang))
                     Spacer()
-                    Picker(L10n.t("显示时机", "Visibility", lang), selection: $controller.preferences.badgeVisibility) {
+                    Picker(L10n.t("总窗口数", "Total Count", lang), selection: $controller.preferences.badgeVisibility) {
                         ForEach(BadgeVisibilityMode.allCases) { mode in
                             Text(mode.title(in: lang)).tag(mode)
                         }
@@ -381,6 +381,19 @@ struct SettingsView: View {
                         .foregroundStyle(.secondary)
                         .frame(width: 38, alignment: .trailing)
                 }
+                SettingsDivider()
+                Text(
+                    L10n.t(
+                        "已最小化数量（↓b）在有最小化时始终显示；“自动”在未全部最小化时显示总窗口数，全部最小化时仅显示 ↓b。",
+                        "Minimized count (↓b) always appears when > 0. Auto shows total count unless all windows are minimized.",
+                        lang
+                    )
+                )
+                .font(.system(size: 11.5))
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 9)
             }
         }
     }

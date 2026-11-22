@@ -12,7 +12,8 @@ struct BadgeMetrics: Equatable {
         counts: WindowCounts,
         tileSide: CGFloat,
         scale: CGFloat,
-        size: BadgeSize = .compact
+        size: BadgeSize = .compact,
+        visibilityMode: BadgeVisibilityMode = .auto
     ) -> BadgeMetrics {
         let scale = max(1, scale)
         let factor: CGFloat = size == .compact ? 0.88 : 1.0
@@ -22,14 +23,18 @@ struct BadgeMetrics: Equatable {
         let maxHeight = max(11, floor(tileSide * 0.36))
         let height = min(max(11, ceil(font.ascender - font.descender + 2.5)), maxHeight)
 
+        let display = visibilityMode.display(for: counts)
         let totalWidth = ("\(counts.total)" as NSString).size(withAttributes: [.font: font]).width
+        let minWidth = ("\(counts.minimized)" as NSString).size(withAttributes: [.font: font]).width
+        let arrowWidth = ceil(fontSize * 0.72)
+
         let rawWidth: CGFloat
-        if counts.minimized == 0 {
-            rawWidth = max(height, ceil(totalWidth + 5.5))
-        } else {
-            let minWidth = ("\(counts.minimized)" as NSString).size(withAttributes: [.font: font]).width
-            let arrowWidth = ceil(fontSize * 0.72)
+        if display.showTotal && display.showMinimized {
             rawWidth = ceil(totalWidth + arrowWidth + minWidth + 6.5)
+        } else if !display.showTotal && display.showMinimized {
+            rawWidth = max(height, ceil(arrowWidth + minWidth + 5.5))
+        } else {
+            rawWidth = max(height, ceil(totalWidth + 5.5))
         }
         let maxWidth = max(12, floor(tileSide * 0.74))
         let width = min(rawWidth, maxWidth)
@@ -62,6 +67,7 @@ struct CountBadge: View {
     var metrics: BadgeMetrics? = nil
     var appearance = BadgeAppearance()
     var appearanceMode: AppAppearanceMode = .system
+    var visibilityMode: BadgeVisibilityMode = .auto
     var inWindowBackdrop = false
 
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
@@ -70,14 +76,12 @@ struct CountBadge: View {
 
     var body: some View {
         let isDark = appearanceMode.preferredColorScheme.map { $0 == .dark } ?? (scheme == .dark)
-        let m = metrics ?? .make(counts: counts, tileSide: 44, scale: 2, size: appearance.size)
+        let m = metrics ?? .make(counts: counts, tileSide: 44, scale: 2, size: appearance.size, visibilityMode: visibilityMode)
+        let display = visibilityMode.display(for: counts)
         let (primary, secondary) = textColors(isDark: isDark)
 
         Group {
-            if counts.minimized == 0 {
-                Text("\(counts.total)")
-                    .foregroundColor(primary)
-            } else {
+            if display.showTotal && display.showMinimized {
                 HStack(spacing: 1) {
                     Text("\(counts.total)")
                         .foregroundColor(primary)
@@ -87,13 +91,24 @@ struct CountBadge: View {
                     Text("\(counts.minimized)")
                         .foregroundColor(secondary)
                 }
+            } else if !display.showTotal && display.showMinimized {
+                HStack(spacing: 1) {
+                    Image(systemName: "arrow.down")
+                        .font(.system(size: m.fontSize * 0.68, weight: .bold))
+                        .foregroundColor(secondary)
+                    Text("\(counts.minimized)")
+                        .foregroundColor(secondary)
+                }
+            } else {
+                Text("\(counts.total)")
+                    .foregroundColor(primary)
             }
         }
         .font(.system(size: m.fontSize, weight: .semibold))
         .monospacedDigit()
         .lineLimit(1)
         .minimumScaleFactor(0.65)
-        .padding(.horizontal, counts.minimized == 0 ? 2 : 3)
+        .padding(.horizontal, (display.showTotal && display.showMinimized) ? 3 : 2)
         .frame(width: m.contentSize.width, height: m.contentSize.height)
         .background(
             BadgeMaterial(
@@ -304,6 +319,7 @@ final class BadgeController {
     private struct Presentation: Equatable {
         let counts: WindowCounts
         let metrics: BadgeMetrics
+        let visibilityMode: BadgeVisibilityMode
         let appearance: BadgeAppearance
         let appearanceMode: AppAppearanceMode
     }
@@ -314,7 +330,7 @@ final class BadgeController {
         _ entries: [DockEntry],
         visible: Bool,
         runningPIDs: Set<pid_t>,
-        visibilityMode: BadgeVisibilityMode = .smart,
+        visibilityMode: BadgeVisibilityMode = .auto,
         appearance: BadgeAppearance = BadgeAppearance(),
         appearanceMode: AppAppearanceMode = .system
     ) {
@@ -328,8 +344,8 @@ final class BadgeController {
             guard tile.width.isFinite, tile.height.isFinite, tile.width > 4, tile.height > 4 else { continue }
             let screen = screens.first { $0.frame.intersects(tile) } ?? screens.first
             let scale = screen?.backingScaleFactor ?? 2
-            let metrics = BadgeMetrics.make(counts: counts, tileSide: min(tile.width, tile.height), scale: scale, size: appearance.size)
-            let presentation = Presentation(counts: counts, metrics: metrics, appearance: appearance, appearanceMode: appearanceMode)
+            let metrics = BadgeMetrics.make(counts: counts, tileSide: min(tile.width, tile.height), scale: scale, size: appearance.size, visibilityMode: visibilityMode)
+            let presentation = Presentation(counts: counts, metrics: metrics, visibilityMode: visibilityMode, appearance: appearance, appearanceMode: appearanceMode)
 
             let panel: NSPanel
             if let old = panels[entry.pid] {
@@ -354,7 +370,7 @@ final class BadgeController {
             }
 
             if previous[entry.pid] != presentation {
-                let view = CountBadge(counts: counts, metrics: metrics, appearance: appearance, appearanceMode: appearanceMode)
+                let view = CountBadge(counts: counts, metrics: metrics, appearance: appearance, appearanceMode: appearanceMode, visibilityMode: visibilityMode)
                 if let host = panel.contentView as? NSHostingView<CountBadge> {
                     host.rootView = view
                 } else {

@@ -22,7 +22,7 @@
 
 | Native macOS Friction | How DockCounts Helps |
 | --- | --- |
-| Minimized and stacked windows disappear behind a single Dock icon | **Smart count badges** (`3` / `3↓1`) appear only when an app has multiple windows or minimized windows, auto-hiding for clean single-window apps |
+| Minimized and stacked windows disappear behind a single Dock icon | **Clean count badges** (`1`, `3`, `3↓1`, `↓3`) always highlight minimized windows (`↓b`), while showing total count `a` via `Auto / Always / Hide` (`Auto` omits redundant `a` when all windows are minimized) |
 | Clicking a multi-window Dock icon offers no quick picker; clicking the front single window does nothing | **Dock Click Enhancement** pops up a window menu (`1–9` shortcuts, hover minimize/close), minimizes a frontmost single window on repeat click, and lets you configure whether re-clicking an open menu triggers native Dock behavior or simply dismisses it |
 | `⌘Tab` to an all-minimized or zero-window app updates only the menu bar | **`⌘Tab` Switch Enhancement** unminimizes single-window apps (or opens a centered picker / restores the latest window for multiple minimized windows) and triggers native Dock `reopen` for regular apps with zero windows |
 
@@ -30,7 +30,7 @@
 
 - **Dock Click Enhancement**: Click any multi-window Dock icon (optionally including single-window apps) to open a crisp window list grouped by `Main → Open → Minimized`, supporting `1–9` / arrow keys, per-row hover minimize/close, and one-click `Show All`. Clicking a frontmost single window minimizes it immediately; a dedicated toggle controls whether re-clicking the same Dock icon while the menu is open triggers the native Dock action or dismisses the menu cleanly.
 - **`⌘Tab` Switch Enhancement**: Automatically restores minimized windows when switching via `⌘Tab` (showing a centered picker or restoring the most recent window when multiple exist), and triggers a new window via Dock `AXPress` for regular apps with zero windows — guarded by `activeSpaceDidChange` and on-screen window checks to avoid false triggers across Spaces.
-- **Unobtrusive Dock Badges**: Hidden automatically for normal single-window apps (`Smart` mode). Shows a compact pill (`3` or `3↓1`) across 4 native styles (`Liquid Glass`, `Soft Frosted`, `High Contrast`, `Accent Color`) and two sizes (`Compact`, `Standard`).
+- **Clear `a↓b` Dock Badges**: Minimized count (`↓b`) always appears whenever minimized windows exist; total count `a` is independently configurable (`Auto` / `Always` / `Hide`), where `Auto` displays `a` whenever visible windows remain (`1`, `3`, `3↓1`) and trims to `↓b` when every window is minimized (`↓1`, `↓3`). Available across 4 native styles (`Liquid Glass`, `Soft Frosted`, `High Contrast`, `Accent Color`) and two sizes (`Compact`, `Standard`).
 - **Unified Appearance & Live EN/ZH UI**: Switch appearance mode (`System / Light / Dark`) uniformly across Settings, badges, and the window picker, and switch between English and Simplified Chinese live without restarting.
 - **Lightweight, Local-First & Manual Update Check**: Native `.menu` menu bar extra; the `CGEventTap` listener only runs fast local hit-testing and leaves right-clicks, modifier-clicks, and drags (> 5 pt) untouched. Zero screen capture, zero telemetry, and zero background requests — GitHub Releases is queried only when you click **Check for Updates**.
 

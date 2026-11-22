@@ -4,20 +4,24 @@ import AppKit
 
 final class BadgeLayoutTests: XCTestCase {
     func testCompactAndStandardBadgesFitDockTileProportionally() {
-        for size in BadgeSize.allCases {
-            for side: CGFloat in [16, 24, 32, 48, 64, 100] {
-                for scale: CGFloat in [1, 2] {
-                    for counts in [
-                        WindowCounts(minimized: 0, total: 1),
-                        WindowCounts(minimized: 0, total: 3),
-                        WindowCounts(minimized: 2, total: 5),
-                        WindowCounts(minimized: 12, total: 25)
-                    ] {
-                        let metrics = BadgeMetrics.make(counts: counts, tileSide: side, scale: scale, size: size)
-                        XCTAssertLessThanOrEqual(metrics.size.width, side)
-                        XCTAssertLessThan(metrics.size.height, side)
-                        XCTAssertLessThanOrEqual(metrics.contentSize.height, max(11, floor(side * 0.36)))
-                        XCTAssertEqual(metrics.size.width * scale, (metrics.size.width * scale).rounded())
+        for mode in BadgeVisibilityMode.allCases {
+            for size in BadgeSize.allCases {
+                for side: CGFloat in [16, 24, 32, 48, 64, 100] {
+                    for scale: CGFloat in [1, 2] {
+                        for counts in [
+                            WindowCounts(minimized: 0, total: 1),
+                            WindowCounts(minimized: 1, total: 1),
+                            WindowCounts(minimized: 0, total: 3),
+                            WindowCounts(minimized: 2, total: 5),
+                            WindowCounts(minimized: 3, total: 3),
+                            WindowCounts(minimized: 12, total: 25)
+                        ] {
+                            let metrics = BadgeMetrics.make(counts: counts, tileSide: side, scale: scale, size: size, visibilityMode: mode)
+                            XCTAssertLessThanOrEqual(metrics.size.width, side)
+                            XCTAssertLessThan(metrics.size.height, side)
+                            XCTAssertLessThanOrEqual(metrics.contentSize.height, max(11, floor(side * 0.36)))
+                            XCTAssertEqual(metrics.size.width * scale, (metrics.size.width * scale).rounded())
+                        }
                     }
                 }
             }
@@ -40,24 +44,35 @@ final class BadgeLayoutTests: XCTestCase {
         XCTAssertEqual(frame.minY * 2, (frame.minY * 2).rounded())
     }
 
-    func testVisibilityModesFilterNoiseProperly() {
-        let single = WindowCounts(minimized: 0, total: 1)
-        let singleMin = WindowCounts(minimized: 1, total: 1)
-        let multi = WindowCounts(minimized: 0, total: 3)
-        let multiMin = WindowCounts(minimized: 2, total: 4)
+    func testBadgeDisplayRulesForTotalAndMinimizedCounts() {
+        let zero = WindowCounts(minimized: 0, total: 0)
+        let singleOpen = WindowCounts(minimized: 0, total: 1)
+        let singleAllMin = WindowCounts(minimized: 1, total: 1)
+        let multiOpen = WindowCounts(minimized: 0, total: 3)
+        let multiPartialMin = WindowCounts(minimized: 1, total: 3)
+        let multiAllMin = WindowCounts(minimized: 3, total: 3)
 
-        XCTAssertFalse(BadgeVisibilityMode.smart.shouldShow(single))
-        XCTAssertTrue(BadgeVisibilityMode.smart.shouldShow(singleMin))
-        XCTAssertTrue(BadgeVisibilityMode.smart.shouldShow(multi))
-        XCTAssertTrue(BadgeVisibilityMode.smart.shouldShow(multiMin))
+        // .auto: show a iff total > 0 && minimized < total; always show b iff minimized > 0
+        XCTAssertEqual(BadgeVisibilityMode.auto.display(for: zero), BadgeDisplay(showTotal: false, showMinimized: false))
+        XCTAssertEqual(BadgeVisibilityMode.auto.display(for: singleOpen), BadgeDisplay(showTotal: true, showMinimized: false))
+        XCTAssertEqual(BadgeVisibilityMode.auto.display(for: singleAllMin), BadgeDisplay(showTotal: false, showMinimized: true))
+        XCTAssertEqual(BadgeVisibilityMode.auto.display(for: multiOpen), BadgeDisplay(showTotal: true, showMinimized: false))
+        XCTAssertEqual(BadgeVisibilityMode.auto.display(for: multiPartialMin), BadgeDisplay(showTotal: true, showMinimized: true))
+        XCTAssertEqual(BadgeVisibilityMode.auto.display(for: multiAllMin), BadgeDisplay(showTotal: false, showMinimized: true))
 
-        XCTAssertFalse(BadgeVisibilityMode.minimizedOnly.shouldShow(single))
-        XCTAssertFalse(BadgeVisibilityMode.minimizedOnly.shouldShow(multi))
-        XCTAssertTrue(BadgeVisibilityMode.minimizedOnly.shouldShow(singleMin))
-        XCTAssertTrue(BadgeVisibilityMode.minimizedOnly.shouldShow(multiMin))
+        // .always: show a iff total > 0; show b iff minimized > 0
+        XCTAssertEqual(BadgeVisibilityMode.always.display(for: zero), BadgeDisplay(showTotal: false, showMinimized: false))
+        XCTAssertEqual(BadgeVisibilityMode.always.display(for: singleOpen), BadgeDisplay(showTotal: true, showMinimized: false))
+        XCTAssertEqual(BadgeVisibilityMode.always.display(for: singleAllMin), BadgeDisplay(showTotal: true, showMinimized: true))
+        XCTAssertEqual(BadgeVisibilityMode.always.display(for: multiAllMin), BadgeDisplay(showTotal: true, showMinimized: true))
 
-        XCTAssertTrue(BadgeVisibilityMode.always.shouldShow(single))
-        XCTAssertFalse(BadgeVisibilityMode.always.shouldShow(WindowCounts(minimized: 0, total: 0)))
+        // .hidden: never show a; show b iff minimized > 0
+        XCTAssertEqual(BadgeVisibilityMode.hidden.display(for: zero), BadgeDisplay(showTotal: false, showMinimized: false))
+        XCTAssertEqual(BadgeVisibilityMode.hidden.display(for: singleOpen), BadgeDisplay(showTotal: false, showMinimized: false))
+        XCTAssertEqual(BadgeVisibilityMode.hidden.display(for: multiOpen), BadgeDisplay(showTotal: false, showMinimized: false))
+        XCTAssertEqual(BadgeVisibilityMode.hidden.display(for: singleAllMin), BadgeDisplay(showTotal: false, showMinimized: true))
+        XCTAssertEqual(BadgeVisibilityMode.hidden.display(for: multiPartialMin), BadgeDisplay(showTotal: false, showMinimized: true))
+        XCTAssertEqual(BadgeVisibilityMode.hidden.display(for: multiAllMin), BadgeDisplay(showTotal: false, showMinimized: true))
     }
 
     func testGeometryHasDistantPointerFallbackInterval() {

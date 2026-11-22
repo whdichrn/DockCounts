@@ -14,7 +14,7 @@ final class PreferencesTests: XCTestCase {
         let preferences = AppPreferences()
         XCTAssertTrue(preferences.enabled)
         XCTAssertTrue(preferences.badgesEnabled)
-        XCTAssertEqual(preferences.badgeVisibility, .smart)
+        XCTAssertEqual(preferences.badgeVisibility, .auto)
         XCTAssertTrue(preferences.windowSelectionEnabled)
         XCTAssertEqual(preferences.triggerMode, .multipleWindows)
         XCTAssertTrue(preferences.minimizeActiveSingleWindow)
@@ -94,6 +94,7 @@ final class PreferencesTests: XCTestCase {
             {
               "enabled": true,
               "badgesEnabled": true,
+              "badgeVisibility": "smart",
               "windowSelectionEnabled": true,
               "selectSingleWindow": true,
               "appearance": {
@@ -105,12 +106,25 @@ final class PreferencesTests: XCTestCase {
             """
             defaults.set(Data(legacyJSON.utf8), forKey: PreferencesStore.key)
             let migrated = store.load()
+            XCTAssertEqual(migrated.badgeVisibility, .auto)
             XCTAssertEqual(migrated.triggerMode, .anyWindow)
             XCTAssertTrue(migrated.secondClickRunsNativeAction)
             XCTAssertEqual(migrated.appearanceMode, .system)
             XCTAssertEqual(migrated.language, .system)
             XCTAssertEqual(migrated.appearance.preset, .solid)
             XCTAssertEqual(migrated.appearance.opacity, 0.4)
+
+            defaults.set(
+                Data("{\"badgeVisibility\":\"minimizedOnly\"}".utf8),
+                forKey: PreferencesStore.key
+            )
+            XCTAssertEqual(store.load().badgeVisibility, .hidden)
+
+            defaults.set(
+                Data("{\"badgeVisibility\":\"always\"}".utf8),
+                forKey: PreferencesStore.key
+            )
+            XCTAssertEqual(store.load().badgeVisibility, .always)
         }
     }
 
@@ -119,7 +133,7 @@ final class PreferencesTests: XCTestCase {
             var preferences = AppPreferences()
             preferences.enabled = false
             preferences.badgesEnabled = false
-            preferences.badgeVisibility = .minimizedOnly
+            preferences.badgeVisibility = .hidden
             preferences.windowSelectionEnabled = true
             preferences.triggerMode = .anyWindow
             preferences.minimizeActiveSingleWindow = false
