@@ -18,7 +18,7 @@ struct SettingsView: View {
                 case .about: aboutTab
                 }
             }
-            .padding(18)
+            .padding(14)
         }
         .frame(width: 520)
         .fixedSize(horizontal: false, vertical: true)
@@ -81,21 +81,21 @@ struct SettingsView: View {
     }
 
     private var generalTab: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 11) {
             SettingsCard {
                 HStack(spacing: 12) {
                     Image(nsImage: AppArtwork.appIcon)
                         .resizable()
-                        .frame(width: 44, height: 44)
-                    VStack(alignment: .leading, spacing: 3) {
+                        .frame(width: 40, height: 40)
+                    VStack(alignment: .leading, spacing: 2) {
                         Text("DockCounts")
-                            .font(.system(size: 15, weight: .bold))
+                            .font(.system(size: 14.5, weight: .bold))
                         HStack(spacing: 6) {
                             Circle()
                                 .fill(statusColor)
                                 .frame(width: 7, height: 7)
                             Text(controller.message)
-                                .font(.system(size: 12))
+                                .font(.system(size: 11.5))
                                 .foregroundStyle(.secondary)
                         }
                     }
@@ -106,7 +106,7 @@ struct SettingsView: View {
                         .accessibilityIdentifier("master-enabled")
                 }
                 .padding(.horizontal, 14)
-                .padding(.vertical, 12)
+                .padding(.vertical, 10)
             }
 
             SettingsCard(title: "点按 Dock 图标") {
@@ -532,9 +532,9 @@ private struct SettingsRow<Content: View>: View {
         HStack(spacing: 10) {
             content()
         }
-        .font(.system(size: 13))
+        .font(.system(size: 12.5))
         .padding(.horizontal, 14)
-        .padding(.vertical, 10)
+        .padding(.vertical, 8)
     }
 }
 
@@ -548,10 +548,10 @@ private struct LoginItemRow: View {
     @ObservedObject var login: LoginItemController
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 4) {
             HStack {
                 Text("登录 Mac 时自动启动")
-                    .font(.system(size: 13))
+                    .font(.system(size: 12.5))
                 Spacer()
                 Toggle(
                     "",
@@ -563,7 +563,7 @@ private struct LoginItemRow: View {
             }
             HStack {
                 Text(login.state.message)
-                    .font(.system(size: 11.5))
+                    .font(.system(size: 11))
                     .foregroundStyle(.secondary)
                     .accessibilityIdentifier("login-status")
                 Spacer()
@@ -574,12 +574,12 @@ private struct LoginItemRow: View {
             }
             if let error = login.error {
                 Text(error)
-                    .font(.system(size: 11.5))
+                    .font(.system(size: 11))
                     .foregroundStyle(.red)
                     .accessibilityIdentifier("login-error")
             }
         }
         .padding(.horizontal, 14)
-        .padding(.vertical, 10)
+        .padding(.vertical, 8)
     }
 }

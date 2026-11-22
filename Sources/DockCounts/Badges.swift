@@ -185,7 +185,7 @@ final class BadgeBackdropView: NSView {
         let targetKind: BackingKind
         switch appearance.preset {
         case .glass:
-            targetKind = supportsGlass ? .glass : .visualEffect
+            targetKind = (supportsGlass && !inWindowBackdrop) ? .glass : .visualEffect
         case .frosted:
             targetKind = .visualEffect
         case .solid, .accent:
@@ -226,18 +226,22 @@ final class BadgeBackdropView: NSView {
 
         switch appearance.preset {
         case .glass:
-            #if compiler(>=6.2)
-            if #available(macOS 26, *), let glass = backing as? NSGlassEffectView {
-                glass.style = reduced ? .clear : .regular
-                glass.tintColor = isDark
-                    ? NSColor(srgbRed: 0.11, green: 0.12, blue: 0.15, alpha: reduced ? 0.82 : 0.56)
-                    : NSColor(white: 0.98, alpha: reduced ? 0.85 : 0.58)
+            if !inWindowBackdrop {
+                #if compiler(>=6.2)
+                if #available(macOS 26, *), let glass = backing as? NSGlassEffectView {
+                    glass.style = reduced ? .clear : .regular
+                    glass.tintColor = isDark
+                        ? NSColor(srgbRed: 0.11, green: 0.12, blue: 0.15, alpha: reduced ? 0.82 : 0.56)
+                        : NSColor(white: 0.98, alpha: reduced ? 0.85 : 0.58)
+                } else {
+                    configureVisualEffect(isDark: isDark, inWindowBackdrop: inWindowBackdrop, frosted: false)
+                }
+                #else
+                configureVisualEffect(isDark: isDark, inWindowBackdrop: inWindowBackdrop, frosted: false)
+                #endif
             } else {
                 configureVisualEffect(isDark: isDark, inWindowBackdrop: inWindowBackdrop, frosted: false)
             }
-            #else
-            configureVisualEffect(isDark: isDark, inWindowBackdrop: inWindowBackdrop, frosted: false)
-            #endif
         case .frosted:
             configureVisualEffect(isDark: isDark, inWindowBackdrop: inWindowBackdrop, frosted: true)
         case .solid:

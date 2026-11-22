@@ -121,19 +121,22 @@ enum WindowPickerMetrics {
 
 private struct PickerSurfaceBackground: NSViewRepresentable {
     var cornerRadius: CGFloat = 10
+    var inWindowBackdrop = false
 
     func makeNSView(context: Context) -> NSView {
-        #if compiler(>=6.2)
-        if #available(macOS 26, *) {
-            let glass = NSGlassEffectView()
-            glass.style = .regular
-            glass.cornerRadius = cornerRadius
-            return glass
+        if !inWindowBackdrop {
+            #if compiler(>=6.2)
+            if #available(macOS 26, *) {
+                let glass = NSGlassEffectView()
+                glass.style = .regular
+                glass.cornerRadius = cornerRadius
+                return glass
+            }
+            #endif
         }
-        #endif
         let view = NSVisualEffectView()
         view.material = .menu
-        view.blendingMode = .behindWindow
+        view.blendingMode = inWindowBackdrop ? .withinWindow : .behindWindow
         view.isEmphasized = true
         view.state = .active
         view.wantsLayer = true
@@ -161,10 +164,11 @@ private struct SelectionMaterial: NSViewRepresentable {
     func updateNSView(_ view: NSVisualEffectView, context: Context) {}
 }
 
-private struct WindowPickerView: View {
+struct WindowPickerView: View {
     let name: String
     let appIcon: NSImage?
     @ObservedObject var state: WindowPickerState
+    var inWindowBackdrop = false
     let choose: (WindowRecord) -> Void
     let activateAll: ([WindowRecord]) -> Void
     let toggleMinimize: (Int, WindowRecord) -> Void
@@ -172,6 +176,28 @@ private struct WindowPickerView: View {
 
     @Environment(\.displayScale) private var scale
     @State private var hoveredIndex: Int?
+
+    init(
+        name: String,
+        appIcon: NSImage?,
+        state: WindowPickerState,
+        inWindowBackdrop: Bool = false,
+        initialHoveredIndex: Int? = nil,
+        choose: @escaping (WindowRecord) -> Void,
+        activateAll: @escaping ([WindowRecord]) -> Void,
+        toggleMinimize: @escaping (Int, WindowRecord) -> Void,
+        closeWindow: @escaping (Int, WindowRecord) -> Void
+    ) {
+        self.name = name
+        self.appIcon = appIcon
+        self.state = state
+        self.inWindowBackdrop = inWindowBackdrop
+        self._hoveredIndex = State(initialValue: initialHoveredIndex)
+        self.choose = choose
+        self.activateAll = activateAll
+        self.toggleMinimize = toggleMinimize
+        self.closeWindow = closeWindow
+    }
 
     var body: some View {
         let minimizedCount = state.windows.filter(\.minimized).count
@@ -260,7 +286,7 @@ private struct WindowPickerView: View {
             }
         }
         .padding(4)
-        .background(PickerSurfaceBackground(cornerRadius: 10))
+        .background(PickerSurfaceBackground(cornerRadius: 10, inWindowBackdrop: inWindowBackdrop))
         .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 10, style: .continuous)
